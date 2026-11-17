@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一方小世界 · 楚门式人生模拟</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#2b2620; --paper:#f7f2e7; --card:#fffdf6; --line:#e3dcc9;
+  --navy:#1e3a5f; --verm:#c8402a; --gold:#b98a2f; --green:#3d7a4a;
+  --muted:#8a8172; --soft:#efe9db;
+}
+html,body{background:#ece5d3;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+body{max-width:1280px;margin:0 auto;padding:10px 14px 30px}
+h1{font-size:22px;letter-spacing:2px}
+h2{font-size:15px;margin-bottom:8px}
+h3{font-size:13px;margin:10px 0 6px;color:var(--navy)}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;font-size:13px;color:var(--ink)}
+button:hover{border-color:var(--navy)}
+button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.danger{border-color:#d8a49c;color:var(--verm)}
+/* header */
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:10px}
+header .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.clockbox{text-align:right;font-size:13px;line-height:1.5}
+.clockbox b{font-size:19px;color:var(--navy)}
+.speeds{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.speeds .lbl{font-size:12px;color:var(--muted)}
+/* layout */
+main{display:grid;grid-template-columns:1.65fr 1fr;gap:10px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+/* stage */
+#stage{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#bcd7ea;min-height:340px}
+#scene{width:100%;height:380px;display:block}
+#actbar{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(20,18,14,.78);color:#fff;border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.5}
+#actbar b{color:#ffd98a}
+#liveDot{position:absolute;top:10px;left:10px;background:rgba(20,18,14,.72);color:#fff;font-size:12px;padding:4px 10px;border-radius:20px}
+#liveDot i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff5a4e;margin-right:6px;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.25}}
+#locTag{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.88);font-size:12px;padding:4px 10px;border-radius:20px;color:var(--navy)}
+#errbar{display:none;background:#fdeceb;color:#9c2b1d;border:1px solid #f3c1b8;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:8px;white-space:pre-wrap}
+/* schedule strip */
+#todayStrip{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.slot{flex:1;min-width:86px;background:var(--soft);border-radius:9px;padding:7px 8px;font-size:12px;line-height:1.45;border:1px solid transparent}
+.slot.cur{background:#fff7e0;border-color:var(--gold)}
+.slot .t{color:var(--muted);font-size:11px}
+.slot b{display:block;font-size:12px}
+/* stats */
+.who{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.avatar{width:54px;height:54px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:30px;border:2px solid var(--line);flex:none}
+.who .nm{font-size:16px;font-weight:700}
+.who .meta{font-size:12px;color:var(--muted);line-height:1.6}
+.bar{margin:6px 0;font-size:12px}
+.bar .bl{display:flex;justify-content:space-between;margin-bottom:2px}
+.bar .tr{height:8px;background:#eee7d2;border-radius:6px;overflow:hidden}
+.bar .fl{height:100%;border-radius:6px;background:var(--green);transition:width .4s}
+.bar .fl.low{background:var(--verm)}
+.bar .fl.mid{background:#d99a26}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.kv span:last-child{font-weight:600}
+/* tabs */
+.tabs{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.tabs button{padding:5px 10px;font-size:12px}
+.panel{display:none;margin-top:10px;max-height:300px;overflow:auto}
+.panel.on{display:block}
+.npc{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px dashed var(--line);align-items:center}
+.npc .rel{flex:1}
+.npc .rel b{font-size:12px}
+.npc .rel span{color:var(--muted)}
+.relbar{width:90px;height:7px;background:#eee7d2;border-radius:5px;overflow:hidden;flex:none}
+.relbar i{display:block;height:100%;background:#5b8dc9}
+.log{font-size:12px;line-height:1.7}
+.log div{padding:3px 0;border-bottom:1px dashed #f0ebdb}
+.log .d{color:var(--muted);margin-right:6px}
+.log .maj{color:var(--verm);font-weight:700}
+.tree-gen{margin-bottom:10px}
+.tree-gen .g{font-size:12px;color:#fff;background:var(--navy);display:inline-block;padding:2px 8px;border-radius:10px;margin-bottom:6px}
+.tree-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:var(--soft);border:1px solid var(--line);border-radius:9px;padding:6px 8px;font-size:12px;line-height:1.5;cursor:pointer;max-width:170px}
+.chip b{font-size:12px}
+.chip .dead{color:var(--muted)}
+.chip.me{border-color:var(--verm);background:#fff3ef}
+/* map */
+#worldmap{width:100%;height:auto;display:block}
+.maplist{font-size:12px;line-height:1.7;margin-top:6px}
+.maplist b{color:var(--navy)}
+.travel{font-size:12px;background:#eef4fb;border:1px solid #cfdfef;border-radius:9px;padding:8px 10px;margin-top:8px;line-height:1.6}
+/* interventions */
+.interv{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.interv button{font-size:12px}
+.note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:8px}
+/* modal */
+#modalWrap{position:fixed;inset:0;background:rgba(20,16,10,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modalWrap.on{display:flex}
+#modal{background:var(--card);border-radius:14px;max-width:520px;width:100%;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+#modal h2{font-size:18px;margin-bottom:8px}
+#modal p{font-size:14px;line-height:1.8}
+#modal .btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+#modal .btns button{flex:1;padding:9px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>一方小世界</h1>
+    <div class="sub">楚门式人生模拟 · 没有剧本的人生 · 世界一直在走</div>
+  </div>
+  <div class="clockbox">
+    <div><b id="clockDate">—</b> <span id="clockSeason"></span></div>
+    <div><span id="clockTime">—</span> · <span id="clockWeather">—</span> · <span id="clockPlace">—</span></div>
+  </div>
+  <div class="speeds">
+    <span class="lbl">时间流速</span>
+    <button data-sp="0">⏸ 暂停</button>
+    <button data-sp="12" class="on">▶ 正常</button>
+    <button data-sp="720">⏩ 快进</button>
+    <button data-sp="10080">⏭ 极速</button>
+    <span class="lbl" title="正常速度：现实5分钟=游戏1小时，现实2小时=游戏1天">现实5分钟 = 游戏1小时</span>
+  </div>
+</header>
+<div id="errbar"></div>
+<main>
+  <section>
+    <div class="card">
+      <div id="stage">
+        <div id="liveDot"><i></i>直播中 · 这个世界不知道有人在看</div>
+        <div id="locTag">—</div>
+        <div id="sceneHost"></div>
+        <div id="actbar">—</div>
+      </div>
+      <div id="todayStrip"></div>
+      <div class="interv" id="intervBox">
+        <span style="font-size:12px;color:var(--muted);align-self:center">导演干预：</span>
+        <button data-iv="food">🍗 加个鸡腿</button>
+        <button data-iv="study">📖 陪他读书</button>
+        <button data-iv="sport">⚽ 叫他去运动</button>
+        <button data-iv="money">💰 塞点零花钱</button>
+      </div>
+      <div class="note">时间只往前走，不会倒流，也不会预告未来。快进只是让时间流得更快，事情都是现场长出来的。</div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h2>🗺 世界地图 · 国家 / 城市 / 交通</h2>
+      <div id="mapHost"></div>
+      <div class="maplist" id="mapList"></div>
+      <div class="travel" id="travelBox">他现在还没出过远门。</div>
+    </div>
+  </section>
+  <aside>
+    <div class="card">
+      <div class="who">
+        <div class="avatar" id="avatar">👶</div>
+        <div>
+          <div class="nm" id="whoName">—</div>
+          <div class="meta" id="whoMeta">—</div>
+        </div>
+      </div>
+      <div id="bars"></div>
+      <div id="kvBox"></div>
+      <div class="tabs">
+        <button data-tab="rel" class="on">关系</button>
+        <button data-tab="fam">家族树</button>
+        <button data-tab="life">人生轨迹</button>
+        <button data-tab="log">事件日志</button>
+      </div>
+      <div class="panel on" id="panel-rel"></div>
+      <div class="panel" id="panel-fam"></div>
+      <div class="panel log" id="panel-life"></div>
+      <div class="panel log" id="panel-log"></div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button id="btnSave" style="flex:1">💾 保存</button>
+        <button id="btnReset" class="danger" style="flex:1">↺ 换个世界重开</button>
+      </div>
+      <div class="note" id="saveNote">每过游戏里一个月自动保存一次，存在这台设备的浏览器里。</div>
+    </div>
+  </aside>
+</main>
+<div class="note" style="margin-top:10px">说明：这个世界里的人没有真正的主观感受——行为可以越模拟越像，感受本身模拟不出来；我们看着他这件事本身，也让他的世界和真实世界不一样。这是模拟和真人的两条本质界限，这里不假装它们不存在。他活在他的世界里，我们只在外面看，中间那堵墙永远不能让他发现。</div>
+<div id="modalWrap"><div id="modal"></div></div>
+<script>
+"use strict";
+/* ============ 工具 ============ */
+const $=s=>document.querySelector(s);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const rint=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const pickW=(a,wf)=>{let t=0;for(const x of a)t+=wf(x);let r=Math.random()*t;for(const x of a){r-=wf(x);if(r<=0)return x;}return a[a.length-1];};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const chance=p=>Math.random()<p;
+const fmtMoney=n=>{n=Math.round(n);const s=n<0?"-¥":"¥";return s+Math.abs(n).toLocaleString("zh-CN")};
+const STAGES=[["婴儿",0,2],["幼儿",3,5],["儿童",6,11],["少年",12,17],["青年",18,29],["成年",30,49],["中年",50,64],["老年",65,200]];
+function stageOf(age){for(const s of STAGES)if(age>=s[1]&&age<=s[2])return s[0];return "老年"}
+function stageScale(age){const st=stageOf(age);return {婴儿:.45,幼儿:.55,儿童:.68,少年:.85,青年:1,成年:1,中年:.98,老年:.92}[st]}
+/* ============ 国家 / 城市 / 交通 ============ */
+const COUNTRIES=[
+ /* 世界总人口80亿，12个国家：3大（18/16/12亿）+3中（8/6/4亿）+6小（5/4/3/2/1/1亿），合计80亿。
+    每国仅列主要城市（其余人口分布在未列出的城市与乡村）；城市人口单位：万人，定死在数据里。
+    分级：特大1800/1500万、大600-800万、中等100-200万、小20-50万、镇2-5万、村几千人。 */
+ {id:"yunlan",name:"云澜国",pop:18,econ:62,climate:"温带四季",culture:"重人情，讲究体面",cities:[
+   {name:"云京",size:"特大城市",pop:1800,airport:1,metro:1,train:1,cost:3},
+   {name:"澜海",size:"特大城市",pop:1500,airport:1,metro:1,train:1,cost:3},
+   {name:"江城",size:"大城市",pop:700,airport:1,metro:1,train:1,cost:2},
+   {name:"枫林",size:"中等城市",pop:150,airport:0,metro:0,train:1,cost:2},
+   {name:"青石",size:"小城市",pop:30,airport:0,metro:0,train:1,cost:1},
+   {name:"桃源村",size:"村",pop:0.5,airport:0,metro:0,train:0,cost:1}]},
+ {id:"eagle",name:"苍鹰联邦",pop:16,econ:88,climate:"寒冷漫长",culture:"崇尚个人奋斗",cities:[
+   {name:"鹰都",size:"特大城市",pop:1700,airport:1,metro:1,train:1,cost:3},
+   {name:"铁港",size:"特大城市",pop:1400,airport:1,metro:1,train:1,cost:3},
+   {name:"麦田",size:"大城市",pop:650,airport:1,metro:1,train:1,cost:2},
+   {name:"湖畔",size:"中等城市",pop:180,airport:0,metro:0,train:1,cost:2},
+   {name:"岩镇",size:"镇",pop:4,airport:0,metro:0,train:1,cost:1},
+   {name:"橡树村",size:"村",pop:0.4,airport:0,metro:0,train:0,cost:1}]},
+ {id:"sakura",name:"樱岛",pop:12,econ:85,climate:"温和多雨",culture:"守规矩，重细节",cities:[
+   {name:"樱都",size:"特大城市",pop:1600,airport:1,metro:1,train:1,cost:3},
+   {name:"海湾",size:"特大城市",pop:1200,airport:1,metro:1,train:1,cost:3},
+   {name:"山城",size:"大城市",pop:750,airport:1,metro:1,train:1,cost:2},
+   {name:"茶乡",size:"中等城市",pop:120,airport:0,metro:0,train:1,cost:2},
+   {name:"渔村",size:"镇",pop:3,airport:0,metro:0,train:0,cost:1},
+   {name:"枫叶村",size:"村",pop:0.3,airport:0,metro:0,train:0,cost:1}]},
+ {id:"sand",name:"沙洲酋长国",pop:8,econ:90,climate:"炎热干旱",culture:"热情好客，重商",cities:[
+   {name:"金沙城",size:"大城市",pop:900,airport:1,metro:1,train:1,cost:3},
+   {name:"绿洲",size:"中等城市",pop:300,airport:1,metro:0,train:1,cost:2},
+   {name:"沙丘镇",size:"镇",pop:8,airport:0,metro:0,train:0,cost:1}]},
+ {id:"rain",name:"雨林共和国",pop:6,econ:34,climate:"终年炎热多雨",culture:"乐观随性",cities:[
+   {name:"雨林市",size:"大城市",pop:700,airport:1,metro:1,train:1,cost:2},
+   {name:"河口",size:"中等城市",pop:150,airport:0,metro:0,train:1,cost:1},
+   {name:"蕉叶镇",size:"镇",pop:5,airport:0,metro:0,train:0,cost:1}]},
+ {id:"iron",name:"铁穹国",pop:4,econ:58,climate:"大陆性，冬长",culture:"坚韧，爱喝酒",cities:[
+   {name:"铁都市",size:"大城市",pop:600,airport:1,metro:1,train:1,cost:2},
+   {name:"锻造",size:"中等城市",pop:100,airport:0,metro:0,train:1,cost:1},
+   {name:"煤窑镇",size:"镇",pop:4,airport:0,metro:0,train:0,cost:1}]},
+ {id:"birch",name:"白桦国",pop:5,econ:70,climate:"寒温带",culture:"安静、爱读书",cities:[
+   {name:"白桦城",size:"大城市",pop:500,airport:1,metro:1,train:1,cost:2},
+   {name:"雪原",size:"小城市",pop:80,airport:0,metro:0,train:1,cost:1},
+   {name:"松林镇",size:"镇",pop:3,airport:0,metro:0,train:0,cost:1}]},
+ {id:"coral",name:"珊瑚群岛",pop:4,econ:66,climate:"热带海洋",culture:"悠闲、爱海",cities:[
+   {name:"珊瑚城",size:"大城市",pop:400,airport:1,metro:0,train:0,cost:2},
+   {name:"贝壳镇",size:"镇",pop:6,airport:0,metro:0,train:0,cost:1}]},
+ {id:"plateau",name:"高原国",pop:3,econ:40,climate:"高原干燥",culture:"虔诚、爱歌舞",cities:[
+   {name:"高原城",size:"中等城市",pop:300,airport:1,metro:0,train:1,cost:2},
+   {name:"牦牛镇",size:"镇",pop:4,airport:0,metro:0,train:0,cost:1}]},
+ {id:"coconut",name:"椰岛国",pop:2,econ:55,climate:"热带岛屿",culture:"热情、爱冲浪",cities:[
+   {name:"椰城",size:"中等城市",pop:200,airport:1,metro:0,train:0,cost:2},
+   {name:"沙滩镇",size:"镇",pop:3,airport:0,metro:0,train:0,cost:1}]},
+ {id:"tundra",name:"苔原国",pop:1,econ:45,climate:"极寒",culture:"沉默、耐寒",cities:[
+   {name:"苔原城",size:"小城市",pop:100,airport:1,metro:0,train:1,cost:2},
+   {name:"冰原镇",size:"镇",pop:2,airport:0,metro:0,train:0,cost:1}]},
+ {id:"honey",name:"蜜糖国",pop:1,econ:60,climate:"温和湿润",culture:"甜美、爱花",cities:[
+   {name:"蜜糖城",size:"小城市",pop:100,airport:1,metro:0,train:1,cost:2},
+   {name:"花田镇",size:"镇",pop:2,airport:0,metro:0,train:0,cost:1}]},
+];
+function countryById(id){return COUNTRIES.find(c=>c.id===id)}
+function cityOf(p){const c=countryById(p.country);return c.cities.find(x=>x.name===p.city)}
+function travelCost(a,b,mode){const ca=cityOf(a),cb=cityOf(b);let base=(ca.cost+cb.cost)*900;if(a.country!==b.country)base*=3;if(mode==="飞机")base*=2.2;if(mode==="火车")base*=1.2;return Math.round(base/100)*100}
+function travelDays(a,b,mode){if(a.country===b.country)return mode==="汽车"?rint(1,2):1;return mode==="飞机"?rint(1,2):rint(3,7)}
+function travelMode(a,b){const ca=cityOf(a),cb=cityOf(b);if(a.country!==b.country&&ca.airport&&cb.airport)return pick(["飞机","飞机","火车"]);if(a.country!==b.country)return "火车";return ca.train||cb.train?"火车":"汽车"}
+/* ============ 时代浪潮 ============ */
+const ERAS=[
+ {name:"互联网浪潮",boom:["互联网","电商","游戏"],decline:["传统零售","报纸"]},
+ {name:"房地产热",boom:["房地产","建筑","装修"],decline:["制造业"]},
+ {name:"新能源革命",boom:["新能源","电动车","储能"],decline:["燃油车","煤炭"]},
+ {name:"智能时代",boom:["人工智能","机器人","芯片"],decline:["传统客服","流水线"]},
+ {name:"大健康时代",boom:["医疗","养老","健身"],decline:["高糖食品"]},
+ {name:"文旅复兴",boom:["旅游","民宿","演出"],decline:["传统百货"]},
+];
+/* ============ 名字 ============ */
+const SURN=["林","陈","王","李","张","刘","赵","周","吴","郑","黄","杨","徐","孙","胡","朱","何","郭","马","罗"];
+const MALE=["小宇","小杰","子航","浩然","天宇","一鸣","子轩","思远","嘉豪","俊杰","晨阳","子墨","景行","安平","志强","建国","志远","云帆","星野","慕白"];
+const FEMALE=["小雨","欣怡","子涵","雨桐","思琪","晓彤","佳怡","梦洁","雨泽","婉婷","丽华","淑芬","秀英","雅琴","慧敏","晓燕","静怡","雪儿","安琪","一诺"];
+/* ============ 地点 / 场景 ============ */
+const LOCS={
+ bedroom:{name:"卧室",icon:"🛏"},living:{name:"客厅",icon:"🛋"},kitchen:{name:"厨房",icon:"🍳"},
+ study:{name:"书房",icon:"📚"},kindergarten:{name:"幼儿园",icon:"🧸"},school:{name:"学校",icon:"🏫"},
+ university:{name:"大学",icon:"🎓"},street:{name:"街道",icon:"🚶"},park:{name:"公园",icon:"🌳"},
+ shop:{name:"商店",icon:"🏪"},netcafe:{name:"网吧",icon:"💻"},court:{name:"篮球场",icon:"🏀"},
+ library:{name:"图书馆",icon:"📖"},hospital:{name:"医院",icon:"🏥"},company:{name:"公司",icon:"🏢"},
+ army:{name:"军营",icon:"🎖"},prison:{name:"监狱",icon:"⛓"},station:{name:"车站/机场",icon:"✈"},
+};
+function locName(l){return LOCS[l]?LOCS[l].name:l}
+/* ============ 状态 ============ */
+const SAVE_KEY="lifesim-save-v1";
+let S=null; // 整个世界的状态
+let prevSpeed=12, ivCooldown={};
+function newWorld(){
+  const era=pick(ERAS);
+  return {
+    v:1, minutes:0, speed:12, startYear:2026,
+    world:{season:"春",weather:"晴",temp:18,era:era,eraLeft:rint(8,14),
+      epidemic:null,recession:0,priceIndex:100,quakeCd:rint(24,60)},
+    focusId:null, people:{}, log:[], timeline:[],
+    seq:1, pausedByEvent:false,
+  };
+}
+function worldDate(){
+  const days=Math.floor(S.minutes/1440);
+  const d=new Date(2026,2,1); d.setDate(d.getDate()+days);
+  const mins=Math.floor(S.minutes%1440), h=Math.floor(mins/60), m=mins%60;
+  return {date:d, y:d.getFullYear(), mo:d.getMonth()+1, dd:d.getDate(), h, m,
+    ds:`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`,
+    hm:`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`};
+}
+function dayCount(){return Math.floor(S.minutes/1440)}
+function logEvt(text,major){
+  const wd=worldDate();
+  S.log.unshift({d:wd.ds+" "+wd.hm,text,major:!!major});
+  if(S.log.length>300)S.log.length=300;
+  if(major){S.timeline.unshift({d:wd.ds,text});if(S.timeline.length>200)S.timeline.length=200;}
+}
+/* ============ 出生：完全随机，起点不决定终点 ============ */
+function rollBirth(){
+  const country=pickW(COUNTRIES,c=>c.pop); // 出生国家按人口加权：大国出生概率更高
+  const city=chance(.55)?country.cities[0]:pick(country.cities.slice(1));
+  const r=Math.random();
+  const wealth=r<.12?"富裕":r<.57?"小康":r<.85?"普通":r<.97?"贫困":"悲剧";
+  const fam=r<.06?"单亲":r<.09?"父母一方重病":"双亲";
+  return {country:country.id,city:city.name,wealth,fam};
+}
+function wealthMods(w){
+  // 阶层门槛：教育资源、人脉、安全网，不只是钱
+  return {
+    富裕:{money:rint(80000,300000),eduQ:1.5,network:75,safety:90,income:rint(25000,60000)},
+    小康:{money:rint(10000,60000),eduQ:1.1,network:45,safety:60,income:rint(8000,20000)},
+    普通:{money:rint(1000,15000),eduQ:0.9,network:25,safety:35,income:rint(4000,9000)},
+    贫困:{money:rint(0,2000),eduQ:0.6,network:8,safety:10,income:rint(1500,4000)},
+    悲剧:{money:rint(0,800),eduQ:0.5,network:5,safety:5,income:rint(800,2500)},
+  }[w];
+}
+function makePerson(opts){
+  const id="p"+(S.seq++);
+  const sex=opts.sex||(chance(.5)?"男":"女");
+  const surname=opts.surname||pick(SURN);
+  const name=opts.name||(sex==="男"?pick(MALE):pick(FEMALE));
+  const b=opts.birth||rollBirth();
+  const wm=wealthMods(b.wealth);
+  const p={
+    id, name:surname+name, sex, birthDay:opts.birthDay||0, country:b.country, city:b.city,
+    wealth:b.wealth, fam:b.fam, gen:opts.gen||0, alive:true, deathCause:null, deathDay:null,
+    traits:{extro:rint(5,95),diligent:rint(5,95),risk:rint(5,95),kind:rint(5,95),curious:rint(5,95)},
+    attrs:{health:rint(70,98),mood:rint(55,85),energy:rint(60,95),hunger:rint(60,95),
+      learning:rint(20,60),fitness:rint(30,80),social:rint(20,70),character:rint(40,90)},
+    skills:{study:rint(0,20),sports:rint(0,20),art:rint(0,20),social:rint(0,20),tech:rint(0,20),business:rint(0,10)},
+    classMod:{eduQ:wm.eduQ,network:wm.network,safety:wm.safety},
+    money:opts.money!=null?opts.money:Math.round(wm.money*0.05),
+    familyMoney:wm.money, parentIncome:wm.income,
+    debt:0, mortgage:0, house:null,
+    luck:rint(5,95), rep:rint(40,70), faith:pick(["无","信佛","信祖先","信命运","信基督","信善有善报"]),
+    desire:"", scars:[], habits:[], dialect:"", phoneUse:0, will:false, regrets:[],
+    illness:null, pregnant:0, pet:null, backstory:"", familyPattern:pick(["打骂教育","溺爱","放养","讲道理"]),
+    marks:{hand:chance(.1)?"左撇子":"右撇子",gait:pick(["走路很快","走路慢悠悠","有点驼背","步子大"]),catch:pick(["“哎呀”","“就这？”","“你懂的”","“没事没事”","“真的假的”"]),laugh:pick(["笑起来眼睛眯成缝","哈哈大笑","捂嘴笑","笑出声又赶紧憋回去"]),tic:pick(["紧张时抠手指","说话爱摸鼻子","思考时转笔","激动时跺脚","无聊时抖腿"])},
+    nickname:"", keepsakes:[{name:"一件旧毛衣",years:0},{name:"一个搪瓷杯",years:0}],
+    edu:"无", eduYears:0, job:null, jobYears:0, industry:null,
+    partner:null, spouse:null, children:[], parents:[], siblings:[],
+    rels:{}, traumas:[], flags:{}, anxiety:0, grief:0,
+    loc:"bedroom", act:"睡觉", outfit:"pajamas", travel:null,
+    bio:[], causeOfDeath:null,
+  };
+  if(opts.traits)Object.assign(p.traits,opts.traits);
+  if(opts.parents)p.parents=opts.parents;
+  S.people[id]=p; return p;
+}
+function makeNPC(parent,role,ageYears){
+  const sex=role==="father"?"男":role==="mother"?"女":(chance(.5)?"男":"女");
+  const np=makePerson({sex,birthDay:dayCount()-Math.round(ageYears*365),gen:parent?parent.gen-1:0,
+    surname:parent?parent.name.slice(0,1):null});
+  np.isNPC=true; np.role=role;
+  np.attrs.learning=rint(30,80); np.job=role==="father"?pick(["工人","司机","工程师","商人","农民","教师"]):pick(["护士","教师","售货员","会计","工人","全职妈妈"]);
+  np.parentIncome=rint(3000,15000);
+  return np;
+}
+function relInit(a,b,val){
+  // 关系有深度：好感、信任、张力、期待
+  const r={v:val==null?rint(50,80):val,trust:rint(50,85),tension:rint(0,15),
+    expect:0,status:"亲密",since:dayCount(),lost:0};
+  a.rels[b.id]=r;
+  b.rels[a.id]={v:r.v,trust:r.trust,tension:r.tension,expect:0,status:"亲密",since:dayCount(),lost:0};
+  return r;
+}
+function startNewWorld(){
+  S=newWorld();
+  initCityDev();
+  const baby=makePerson({sex:pick(["男","女"])});
+  baby.birthDay=0; baby.loc="bedroom"; baby.act="睡觉";
+  const father=makeNPC(baby,"father",rint(24,34));
+  const mother=makeNPC(baby,"mother",rint(23,32));
+  baby.parents=[father.id,mother.id];
+  father.children=[baby.id]; mother.children=[baby.id];
+  if(baby.fam==="单亲"){ if(chance(.5)){father.alive=false;father.deathCause="意外";} else {mother.alive=false;mother.deathCause="重病";} }
+  if(baby.fam==="父母一方重病"){ const ill=chance(.5)?father:mother; ill.attrs.health=rint(20,40); ill.flags.ill="重病"; }
+  relInit(baby,father,rint(65,90)); relInit(baby,mother,rint(65,90));
+  // 父母的期待：会变成压力
+  baby.rels[father.id].expect=rint(40,90); baby.rels[mother.id].expect=rint(40,90);
+  if(chance(.4)){ const sib=makePerson({sex:pick(["男","女"]),birthDay:-rint(1,6)*365,gen:0,surname:baby.name.slice(0,1)}); sib.isNPC=true; sib.role="sibling"; baby.siblings=[sib.id]; father.children.push(sib.id); mother.children.push(sib.id); relInit(baby,sib,rint(50,85)); }
+  genCommunity(baby);
+  genParentHistory(father,mother,baby);
+  S.focusId=baby.id;
+  const c=countryById(baby.country);
+  logEvt(`🍼 ${baby.name}出生了！生在${c.name}·${baby.city}，一个${baby.wealth}家庭${baby.fam==="双亲"?"，父母双全":baby.fam==="单亲"?"，单亲家庭":"，父母一方重病"}。出身只是起点，未来谁也不知道。`,true);
+  save();
+}
+/* ============ 引擎 ============ */
+function focus(){return S.people[S.focusId]}
+function ageYears(p){return Math.max(0,(dayCount()-p.birthDay)/365)}
+function ageStr(p){const a=p.deathDay!=null?(p.deathDay-p.birthDay)/365:ageYears(p);return a<1?Math.floor(a*12)+"个月":Math.floor(a)+"岁"}
+function isMajor(p){return p.flags&&p.flags.major}
+function traumaMoodCap(p){let cap=100;for(const t of p.traumas)cap-=t.sev*1.2;return clamp(cap,45,100)}
+function impulse(p){ // 非理性：情绪、冲动、压力越大，越可能做出“不划算”的选择
+  const stress=(100-p.attrs.mood)/100*0.5 + p.anxiety/100*0.5;
+  return clamp(0.05 + stress*0.5 + p.traits.risk/100*0.2, 0, 0.85);
+}
+/* ---- 每日作息 ---- */
+function scheduleFor(p,h){
+  const age=ageYears(p), st=stageOf(age), w=S.world;
+  const schoolClosed=w.epidemic&&w.epidemic.closed;
+  if(p.flags.inPrison)return h<6?{loc:"prison",act:"睡觉",desc:"铁窗里的一夜"}:h<12?{loc:"prison",act:"劳作",desc:"在监狱里劳作"}:h<18?{loc:"prison",act:"放风",desc:"放风时间，望着高墙"}:{loc:"prison",act:"睡觉",desc:"熄灯了"};
+  if(p.flags.inArmy)return h<6?{loc:"army",act:"睡觉",desc:"军营熄灯号后"}:h<12?{loc:"army",act:"训练",desc:"队列与体能训练"}:h<18?{loc:"army",act:"训练",desc:"战术训练"}:{loc:"army",act:"休息",desc:"班里聊着天"};
+  if(p.travel)return {loc:"station",act:"在路上",desc:`正在去${p.travel.to}的路上（${p.travel.mode}，还剩${p.travel.daysLeft}天）`};
+  if(age<1)return h<7?{loc:"bedroom",act:"睡觉",desc:"婴儿在熟睡"}:h<12?{loc:"living",act:"玩耍",desc:"在客厅爬来爬去"}:h<18?{loc:"bedroom",act:"午睡",desc:"午睡时间"}:{loc:"living",act:"和爸妈在一起",desc:"被爸爸妈妈抱着"};
+  if(age<3)return h<7?{loc:"bedroom",act:"睡觉",desc:"睡得正香"}:h<12?{loc:"living",act:"玩耍",desc:"搭积木、看绘本"}:h<15?{loc:"bedroom",act:"午睡",desc:"午睡"}:h<19?{loc:"park",act:"玩耍",desc:"在小区里疯跑"}:{loc:"living",act:"和爸妈在一起",desc:"听妈妈讲故事"};
+  if(age<6)return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"kindergarten",act:"上幼儿园",desc:"在幼儿园做游戏、学儿歌"}:h<15?{loc:"bedroom",act:"午睡",desc:"午睡"}:h<18?{loc:"park",act:"玩耍",desc:"和小朋友在公园玩"}:{loc:"living",act:"和爸妈在一起",desc:"一家人在一起"};
+  if(age<12)return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"school",act:"上课",desc:schoolClosed?"疫情停课，在家上网课":"在小学上课"}:h<14?{loc:"kitchen",act:"吃午饭",desc:"吃午饭"}:h<17?{loc:"school",act:"上课",desc:schoolClosed?"在家写作业":"下午的课"}:h<19?{loc:"court",act:"玩耍",desc:"和小伙伴打球、疯跑"}:h<21?{loc:"study",act:"写作业",desc:"写作业"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+  if(age<18)return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"school",act:"上课",desc:schoolClosed?"疫情停课，在家上网课":"在中学上课"}:h<14?{loc:"kitchen",act:"吃午饭",desc:"吃午饭"}:h<17?{loc:"school",act:"上课",desc:schoolClosed?"在家上网课":"下午的课"}:h<19?{loc:p.flags.addicted>60?"netcafe":"court",act:p.flags.addicted>60?"在网吧":"打球",desc:p.flags.addicted>60?"泡在网吧里":"打球、运动"}:h<22?{loc:"study",act:"写作业",desc:"写作业、复习"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+  if(age<23){
+    if(p.edu==="大学")return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"university",act:"上课",desc:schoolClosed?"疫情停课，上网课":"在大学上课"}:h<14?{loc:"kitchen",act:"吃午饭",desc:"吃午饭"}:h<18?{loc:"university",act:"自习/社团",desc:"图书馆或社团活动"}:h<22?{loc:"living",act:"自由时间",desc:"和室友、朋友在一起"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+    if(p.job)return workSlot(p,h);
+    return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"street",act:"找工作/打零工",desc:"在街上找活干"}:h<18?{loc:"street",act:"打零工",desc:"打零工谋生"}:h<22?{loc:"living",act:"自由时间",desc:"窝在家里"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+  }
+  if(p.job)return workSlot(p,h);
+  if(age>=60)return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"park",act:"散步",desc:"在公园散步、打太极"}:h<15?{loc:"bedroom",act:"午睡",desc:"午睡"}:h<18?{loc:"living",act:"带孙辈",desc:"陪孙子孙女玩"}:h<21?{loc:"living",act:"看电视",desc:"和老伴看电视"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+  return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<12?{loc:"street",act:"找工作",desc:"在找工作"}:h<18?{loc:"street",act:"打零工",desc:"打零工"}:h<22?{loc:"living",act:"自由时间",desc:"在家待着"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+}
+function workSlot(p,h){
+  const loc=p.industry==="互联网"||p.industry==="人工智能"?"company":p.job==="军人"?"army":"company";
+  return h<7?{loc:"bedroom",act:"睡觉",desc:"睡梦中"}:h<9?{loc:"kitchen",act:"吃早饭",desc:"吃早饭，准备上班"}:h<12?{loc:loc,act:"上班",desc:`在${p.job||"单位"}上班`}:h<14?{loc:"kitchen",act:"吃午饭",desc:"吃午饭"}:h<18?{loc:loc,act:"上班",desc:"下午的工作"}:h<20?{loc:"living",act:"晚饭",desc:"和家人吃晚饭"}:h<22?{loc:"living",act:"自由时间",desc:"休息、陪家人"}:{loc:"bedroom",act:"睡觉",desc:"睡觉了"};
+}
+/* ---- 出行 ---- */
+function startTravel(p,destCity,reason){
+  const dest={country:p.country,city:destCity};
+  // 先找目标城市属于哪个国家
+  let dc=null; for(const c of COUNTRIES)for(const ci of c.cities)if(ci.name===destCity)dc={country:c.id,city:ci.name};
+  if(!dc)return false;
+  const mode=travelMode({country:p.country,city:p.city},dc);
+  const cost=travelCost({country:p.country,city:p.city},dc,mode);
+  const days=travelDays({country:p.country,city:p.city},dc,mode);
+  if(p.money+p.familyMoney*0.3<cost){logEvt(`✈ ${p.name}想去${destCity}（${reason}），但钱不够（需要${fmtMoney(cost)}），只能作罢。`);return false;}
+  const fromSelf=Math.min(p.money,cost); p.money-=fromSelf; p.familyMoney-=Math.max(0,cost-fromSelf);
+  p.travel={to:destCity,country:dc.country,mode,daysLeft:days,reason};
+  logEvt(`✈ ${p.name}出发去${destCity}（${reason}），坐${mode}，${fmtMoney(cost)}，要走${days}天。`,true);
+  return true;
+}
+/* ---- 存档 ---- */
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+function load(){try{const s=localStorage.getItem(SAVE_KEY);if(!s)return false;S=JSON.parse(s);return true;}catch(e){return false}}
+/* ---- 每天推进 ---- */
+let lastDay=-1,lastMonth=-1;
+function processDay(){
+  const wd=worldDate(), p=focus();
+  const age=ageYears(p);
+  // 作息（显示用；需求按小时在 tick 里走）
+  const slot=scheduleFor(p,wd.h);
+  p.loc=slot.loc; p.act=slot.act; p.outfit=outfitFor(p,slot);
+  const A=p.attrs;
+  if(A.hunger<20){A.health=clamp(A.health-1,0,100);A.mood=clamp(A.mood-2,0,100);}
+  if(A.energy<15){A.mood=clamp(A.mood-2,0,100);}
+  // 心情基线：创伤、悲伤、焦虑长期拖累
+  const base=62-p.traumas.reduce((s,t)=>s+t.sev,0)*1.5-p.grief*0.12-p.anxiety*0.25;
+  A.mood=clamp(A.mood+(base-A.mood)*0.02+(chance(.5)?1:-1),0,traumaMoodCap(p));
+  if(p.grief>0)p.grief=Math.max(0,p.grief-0.15);
+  if(p.anxiety>0)p.anxiety=Math.max(0,p.anxiety-0.2);
+  if(p.illness)illnessStep(p);
+  updateDesire(p);
+  // 学习与技能随活动成长（阶层影响教育资源）
+  const eq=p.classMod.eduQ;
+  if(slot.act==="上课"||slot.act==="写作业"){A.learning=clamp(A.learning+0.12*eq*(0.5+p.traits.diligent/100),0,100);p.skills.study=clamp(p.skills.study+0.1*eq,0,100);}
+  if(slot.act==="打球"||slot.act==="运动"){A.fitness=clamp(A.fitness+0.2,0,100);p.skills.sports=clamp(p.skills.sports+0.12,0,100);}
+  if(slot.act==="在网吧"){A.mood=clamp(A.mood+1,0,100);p.flags.addicted=clamp((p.flags.addicted||0)+0.4,0,100);}
+  if(slot.act==="上班"){p.jobYears+=1/365;const ind=p.industry;if(ind&&S.world.era.boom.includes(ind)){p.skills.business=clamp(p.skills.business+0.05,0,100);}}
+  // 入学进阶（按年龄自然发生）
+  if(age>=3&&age<6&&p.edu==="无"){p.edu="幼儿园";logEvt(`🧸 ${p.name}上了幼儿园。`);}
+  if(age>=6&&age<12&&p.edu!=="小学"&&p.edu!=="初中"){p.edu="小学";genClass(p,"小学");logEvt(`🎒 ${p.name}上了小学。`);}
+  if(age>=12&&age<15&&p.edu!=="初中"&&p.edu!=="高中"){p.edu="初中";genClass(p,"初中");logEvt(`📚 ${p.name}上了初中。`);}
+  if(age>=15&&age<18&&p.edu!=="高中"&&p.edu!=="大学"){p.edu="高中";genClass(p,"高中");logEvt(`📖 ${p.name}上了高中。`);}
+  // 服刑 / 服役倒计时
+  if(p.flags.inPrison){p.flags.inPrison--;if(p.flags.inPrison<=0){delete p.flags.inPrison;logEvt(`⛓ ${p.name}出狱了。`,true);p.traumas.push({name:"牢狱之灾",sev:7,age:Math.floor(age)});}}
+  if(p.flags.inArmy){p.flags.inArmy--;if(p.flags.inArmy<=0){delete p.flags.inArmy;p.job=null;logEvt(`🎖 ${p.name}退伍了。`,true);}}
+  // 在路上
+  if(p.travel){p.travel.daysLeft--;if(p.travel.daysLeft<=0){p.country=p.travel.country;p.city=p.travel.to;const r=p.travel.reason;p.travel=null;logEvt(`📍 ${p.name}到了${p.city}（${r}）。`,true);}}
+  // 每日事件
+  rollDailyEvents(p);
+  // NPC 们也在过日子
+  for(const id in S.people){const q=S.people[id];if(q.id===p.id||!q.alive)continue;ageNPC(q);}
+  // 月度结算
+  if(wd.mo!==lastMonth){lastMonth=wd.mo;processMonth();}
+  // 死亡判定
+  checkDeath(p);
+  for(const id in S.people){const q=S.people[id];if(q.id!==p.id&&q.alive)checkDeath(q);}
+}
+function outfitFor(p,slot){
+  if(slot.act==="睡觉")return "pajamas";
+  if(p.flags.inPrison)return "prison";
+  if(p.flags.inArmy||slot.act==="训练")return "army";
+  if(slot.loc==="school"||slot.loc==="university")return "uniform";
+  if(slot.act==="上班")return "work";
+  if(slot.loc==="court")return "sport";
+  return "casual";
+}
+/* ---- NPC 的一年 ---- */
+function ageNPC(q){
+  const age=ageYears(q);
+  if(q.flags&&q.flags.ill==="重病")q.attrs.health=clamp(q.attrs.health-0.05,0,100);
+  // 每年生日附近：结婚、生子（简化：按年概率）
+  if(Math.floor(age)!==Math.floor(age-1/365)){
+    if(age>=22&&age<=38&&!q.spouse&&chance(.09)){q.spouse="配偶";logEvt(`💍 ${q.name}结婚了。`);}
+    if(q.spouse&&age>=23&&age<=42&&q.children.length<3&&q.id!==focus().spouse&&chance(.08)){const kid=makePerson({sex:pick(["男","女"]),birthDay:dayCount(),gen:q.gen+1,surname:q.name.slice(0,1)});kid.isNPC=true;kid.role="child";q.children.push(kid.id);logEvt(`🍼 ${q.name}家添了个孩子：${kid.name}。`);}
+    if(age>=60&&q.job) { if(chance(.3)){q.job="退休";} }
+  }
+}
+/* ---- 月度：经济、时代、世界大事 ---- */
+function processMonth(){
+  const w=S.world, p=focus();
+  // 季节与天气
+  const wd=worldDate();
+  w.season=["冬","冬","春","春","春","夏","夏","夏","秋","秋","秋","冬"][wd.mo-1];
+  w.weather=pick(["晴","晴","晴","多云","阴","雨","雨","雪","雾"]);
+  w.temp=rint(-2,32);
+  // 通胀：物价慢慢涨
+  w.priceIndex=+(w.priceIndex*1.003).toFixed(2);
+  // 时代推进
+  if(--w.eraLeft<=0){const old=w.era.name;w.era=pick(ERAS.filter(e=>e.name!==old));w.eraLeft=rint(8,14);logEvt(`🌍 时代变了：${w.era.name}来了。${w.era.boom.join("、")}这些行业正在兴起，${w.era.decline.join("、")}正在走下坡。`,true);}
+  // 经济衰退
+  if(w.recession>0){w.recession--;if(w.recession===0)logEvt("📈 经济衰退过去了，日子慢慢缓过来了。");}
+  else if(chance(.012)){w.recession=rint(10,30);logEvt("📉 经济衰退来了！很多公司裁员，找工作变难了。",true);}
+  // 疫情
+  if(w.epidemic){w.epidemic.left--;if(w.epidemic.left<=0){w.epidemic=null;logEvt("🦠 疫情过去了，学校和街道恢复了正常。");}}
+  else if(chance(.006)){w.epidemic={name:pick(["流感","新冠变异株","诺如病毒","登革热"]),left:rint(4,14),closed:true};logEvt(`🦠 ${w.epidemic.name}爆发了！学校停课，改上网课，出门的人都戴上了口罩。`,true);}
+  // 地震（罕见但突然）
+  if(--w.quakeCd<=0){w.quakeCd=rint(36,120);if(chance(.5)){const mag=rnd(5,7.5).toFixed(1);logEvt(`🌋 ${p.city}附近发生${mag}级地震！`,true);quakeHit(p,mag);}}
+  // 洪水 / 台风（夏秋）
+  if((wd.mo>=6&&wd.mo<=10)&&chance(.01)){const t=pick(["洪水","台风"]);logEvt(`🌊 ${t}来了，${p.city}部分地区受灾。`,true);if(chance(.3)){p.familyMoney=Math.round(p.familyMoney*0.7);logEvt("🏠 家里房子进了水，修房子花了一大笔钱。");}}
+  // 城市生长、社区新陈代谢、学校月度
+  cityMonthly(); communityMonthly(); schoolMonthly(p);
+  // 发工资 / 花销
+  const age=ageYears(p);
+  if(p.job&&p.job!=="军人"){const sal=p.salary||3000;p.money+=sal;p.familyMoney+=0;}
+  if(age<18){p.familyMoney+=p.parentIncome-2600*w.priceIndex/100;}
+  else {p.money-=Math.round(1800*w.priceIndex/100);if(p.mortgage>0){const pay=Math.min(p.mortgage,Math.round(3200*w.priceIndex/100));p.money-=pay;p.mortgage-=pay;if(p.mortgage<=0){p.mortgage=0;logEvt("🏠 房贷还清了！房子真正属于自己了。",true);}}}
+  if(p.debt>0){const pay=Math.min(Math.max(0,p.money),Math.round(p.debt*0.02));p.money-=pay;p.debt=Math.round((p.debt-pay)*1.002);if(p.debt<0)p.debt=0;}
+  // 破产：债大到还不起了就重组，不会无限滚到天文数字
+  if(p.debt>500000&&(!p.flags.bankruptYear||worldDate().y-p.flags.bankruptYear>=10)){
+    p.flags.bankruptYear=worldDate().y;
+    const old=p.debt; p.debt=Math.round(p.debt*0.15); p.job=null;
+    addTrauma(p,"破产",8); p.anxiety=clamp(p.anxiety+30,0,100);
+    logEvt(`💥 实在还不起了，申请了破产：${fmtMoney(old)}的债重组后只剩${fmtMoney(p.debt)}，工作也丢了，房子没了，日子要从头再来。`,true);
+  }
+  if(p.money<0){p.debt+=-p.money;p.money=0;p.anxiety=clamp(p.anxiety+8,0,100);if(chance(.4))logEvt("💸 手头太紧了，开始欠钱，整夜睡不着。");}
+  if(p.familyMoney<0){p.familyMoney=0;p.anxiety=clamp(p.anxiety+5,0,100);}
+  // 疫情感染
+  if(w.epidemic&&chance(.02)){p.attrs.health=clamp(p.attrs.health-18,0,100);p.flags.ill="感染";logEvt(`🤒 ${p.name}感染了${w.epidemic.name}，发烧卧床。`);}
+  if(p.flags.ill==="感染"&&chance(.5)){delete p.flags.ill;logEvt("🤒 烧退了，慢慢恢复了。");}
+  if(wd.dd===1)save();
+  if(p.pregnant>0){p.pregnant--;if(p.pregnant===0){haveChild(p);}}
+}
+function quakeHit(p,mag){
+  if(chance(.25)){p.attrs.health=clamp(p.attrs.health-rint(10,35),0,100);p.traumas.push({name:"地震惊吓",sev:5,age:Math.floor(ageYears(p))});logEvt("🤕 地震里受了伤，住进了医院。");}
+  if(chance(.4)){p.familyMoney=Math.round(p.familyMoney*0.6);logEvt("🏚 家里的房子在地震里受损，修缮花了一大笔钱。");}
+  if(chance(.2)){const c=countryById(p.country);const other=c.cities.find(x=>x.name!==p.city);if(other){p.city=other.name;logEvt(`🚚 全家搬去了${other.name}。`);}}
+}
+/* ---- 死亡：年龄、疾病、意外，无常随时发生 ---- */
+function checkDeath(q){
+  const age=ageYears(q);
+  let pd=0;
+  if(age<1)pd=.000014; else if(age<50)pd=.000005; else if(age<65)pd=.000015; else if(age<75)pd=.00006; else if(age<85)pd=.00015; else pd=.0005;
+  pd*= (100-q.attrs.health)/60+0.4;
+  if(q.flags&&q.flags.ill==="重病")pd+=.01;
+  // 意外：任何年龄都可能突然发生（但很罕见）；死因按年龄来，不写离谱的
+  if(chance(.000008)){killPerson(q,age<12?pick(["意外坠落","溺水","窒息"]):age<18?pick(["车祸","意外坠落"]):pick(["车祸","突发心梗","意外坠落","突发脑溢血"]));return;}
+  if(chance(pd))killPerson(q,age>=65?"年老去世":q.flags&&q.flags.ill?"病逝":"疾病");
+}
+function killPerson(q,cause){
+  q.alive=false;q.deathCause=cause;q.deathDay=dayCount();
+  logEvt(`🕯 ${q.name}去世了（${cause}），享年${ageStr(q)}。`,true);
+  const p=focus();
+  if(q.id!==p.id){
+    // 亲人离世：悲伤与创伤，跟一辈子
+    const rel=p.rels[q.id];
+    if(rel&&rel.v>55){p.grief=clamp(p.grief+60,0,100);p.traumas.push({name:q.name+"离世",sev:6,age:Math.floor(ageYears(p))});}
+    if(q.role==="father"||q.role==="mother"){p.familyMoney=Math.round(p.familyMoney*0.85);}
+  }
+  if(q.id===S.focusId)succession();
+}
+/* ============ 事件：全部现场触发，没有剧本 ============ */
+function addTrauma(p,name,sev){if(p.traumas.some(t=>t.name===name))return;p.traumas.push({name,sev,age:Math.floor(ageYears(p))});if(p.traumas.length>8)p.traumas.shift();}
+function relDelta(p,npcId,dv,dt){const r=p.rels[npcId];if(!r)return;if(dv)r.v=clamp(r.v+dv,0,100);if(dt)r.tension=clamp(r.tension+dt,0,100);if(r.tension>80&&r.status!=="决裂"){r.status="决裂";} }
+function findNPC(role){for(const id in S.people){const q=S.people[id];if(q.alive&&q.role===role)return q}return null}
+function makeFriend(p){
+  const f=makePerson({sex:pick(["男","女"]),birthDay:dayCount()-Math.round(ageYears(p)*365),gen:p.gen});
+  f.isNPC=true;f.role="friend";relInit(p,f,rint(55,85));return f;
+}
+function getJob(p,industry){
+  const ind=industry||pick(["互联网","制造业","服务业","房地产","新能源","人工智能","医疗","教育","建筑","电商"]);
+  const boom=S.world.era.boom.includes(ind), dec=S.world.era.decline.includes(ind);
+  let sal=Math.round((p.skills.study*40+p.classMod.network*30+rint(2000,5000))*(boom?1.4:dec?0.7:1));
+  p.job=boom?"互联网从业者":pick(["职员","工人","销售","程序员","教师","医生","厨师","司机"]);
+  p.industry=ind;p.salary=sal;p.jobYears=0;
+  logEvt(`💼 ${p.name}找到工作了：${p.job}（${ind}），月薪${fmtMoney(sal)}${boom?"，赶上了"+S.world.era.name:""}。`);
+}
+function marry(p,who){
+  p.spouse=who.id;p.partner=null;
+  logEvt(`💍 ${p.name}和${who.name}结婚了！`,true);
+}
+function haveChild(p){
+  const kid=makePerson({sex:pick(["男","女"]),birthDay:dayCount(),gen:p.gen+1,surname:p.name.slice(0,1),parents:[p.id]});
+  kid.isNPC=true;kid.role="child";
+  p.children.push(kid.id);
+  if(p.spouse){const sp=S.people[p.spouse];if(sp)sp.children.push(kid.id);}
+  // 孩子继承一部分性格（遗传+家教）
+  for(const k in kid.traits)kid.traits[k]=clamp(Math.round(p.traits[k]*0.5+rnd(0,50)),0,100);
+  logEvt(`🍼 ${p.name}的孩子出生了：${kid.name}！`,true);
+  return kid;
+}
+const EVENTS=[
+ {id:"exam_good",when:p=>ageYears(p)>=6&&ageYears(p)<23&&p.edu!=="无",p:0.006,run(p){p.attrs.learning=clamp(p.attrs.learning+3,0,100);p.attrs.mood=clamp(p.attrs.mood+5,0,100);return "📝 这次考试考得很好，被老师当众表扬了。";}},
+ {id:"exam_bad",when:p=>ageYears(p)>=6&&ageYears(p)<23&&p.edu!=="无",p:0.006,run(p){p.attrs.learning=clamp(p.attrs.learning-2,0,100);p.attrs.mood=clamp(p.attrs.mood-6,0,100);if(p.traits.diligent<30&&chance(.3))addTrauma(p,"一次惨败的考试",3);return "📝 这次考试砸了，回家路上一直低着头。";}},
+ {id:"skip",when:p=>ageYears(p)>=10&&ageYears(p)<18,pp:p=>0.001+p.traits.risk/100*0.006+(p.flags.addicted||0)/100*0.01,run(p){p.attrs.learning=clamp(p.attrs.learning-2,0,100);return "🚶 今天逃课了，在外面晃了一整天。";}},
+ {id:"bullied",when:p=>ageYears(p)>=6&&ageYears(p)<18,pp:p=>0.0015+(p.traits.extro<25?0.003:0),run(p){p.attrs.mood=clamp(p.attrs.mood-10,0,100);p.attrs.social=clamp(p.attrs.social-3,0,100);if(chance(.4))addTrauma(p,"校园欺凌",5);return "😔 在学校被人欺负了，不敢跟爸妈说。";}},
+ {id:"friend",when:p=>ageYears(p)>=6&&ageYears(p)<30,pp:p=>0.004+p.traits.extro/100*0.006,run(p){const f=makeFriend(p);return `🤝 交到了新朋友 ${f.name}，两个人很聊得来。`;}},
+ {id:"friend_betray",when:p=>ageYears(p)>=12,pp:p=>0.0009,run(p){const fs=Object.keys(p.rels).filter(id=>S.people[id]&&S.people[id].role==="friend"&&p.rels[id].v>50);if(!fs.length)return null;const f=S.people[pick(fs)];relDelta(p,f.id,-45,60);f.rels[p.id].v=p.rels[f.id].v;if(chance(.5))addTrauma(p,"被朋友背叛",5);return `💔 ${f.name}背叛了他：背后说坏话，还抢了他喜欢的东西。`;}},
+ {id:"friend_reunion",when:p=>ageYears(p)>=20,pp:p=>0.0006,run(p){const fs=Object.keys(p.rels).filter(id=>S.people[id]&&S.people[id].role==="friend"&&p.rels[id].status==="决裂");if(!fs.length&&chance(.5))return null;const f=fs.length?S.people[pick(fs)]:makeFriend(p);p.rels[f.id].status="亲密";p.rels[f.id].v=clamp(p.rels[f.id].v+40,0,100);p.rels[f.id].tension=0;return `🤝 多年没联系的${f.name}突然出现了，两个人坐在路边聊了一整夜，像从没分开过。`;}},
+ {id:"netcafe",when:p=>ageYears(p)>=12&&ageYears(p)<25,pp:p=>0.002+p.traits.risk/100*0.005,run(p){p.flags.addicted=clamp((p.flags.addicted||0)+12,0,100);p.attrs.learning=clamp(p.attrs.learning-2,0,100);p.money-=120;return "💻 泡了一整天网吧，打游戏打到眼睛发红。";}},
+ {id:"puppy",when:p=>ageYears(p)>=13&&ageYears(p)<20&&!p.partner,pp:p=>0.004+p.traits.extro/100*0.005,run(p){const g=makePerson({sex:p.sex==="男"?"女":"男",birthDay:dayCount()-Math.round(ageYears(p)*365),gen:p.gen});g.isNPC=true;g.role="lover";p.partner=g.id;relInit(p,g,rint(70,95));return `💕 早恋了：他和${g.name}在一起了，每天一起上学、一起吃饭。`;}},
+ {id:"love_quarrel",when:p=>!!p.partner,pp:p=>0.003,run(p){const g=S.people[p.partner];if(!g)return null;relDelta(p,g.id,-15,25);return `💢 和${g.name}大吵了一架，互相误会，谁也不肯先低头。`;}},
+ {id:"love_ld",when:p=>!!p.partner,pp:p=>0.001,run(p){const g=S.people[p.partner];if(!g)return null;const r=p.rels[g.id];r.status="异地";return `🚄 ${g.name}去了别的城市，两个人开始了异地恋。`;}},
+ {id:"love_betray",when:p=>!!p.partner,pp:p=>0.0012,run(p){const g=S.people[p.partner];if(!g)return null;relDelta(p,g.id,-60,80);p.partner=null;addTrauma(p,"被恋人背叛",6);return `💔 发现${g.name}背叛了他，分手了，很久缓不过来。`;}},
+ {id:"love_back",when:p=>!p.partner&&p.traumas.some(t=>t.name==="被恋人背叛"),pp:p=>0.0008,run(p){return "💕 兜兜转转，前任回来找他复合了——要不要答应，他还没想好。";}},
+ {id:"fight",when:p=>ageYears(p)>=12&&ageYears(p)<35,pp:p=>0.001+p.traits.risk/100*0.004+(100-p.attrs.character)/100*0.004,run(p){p.attrs.health=clamp(p.attrs.health-8,0,100);p.attrs.character=clamp(p.attrs.character-2,0,100);if(chance(.25)){return crimeHit(p,"打架斗殴");}return "🥊 和人打了一架，鼻青脸肿地回了家。";}},
+ {id:"gaokao",when:p=>ageYears(p)>=17.9&&ageYears(p)<18.2&&!p.flags.gaokaoDone,major:true,pp:()=>1,run(p){p.flags.gaokaoDone=true;const score=p.attrs.learning*p.classMod.eduQ+p.classMod.network*0.3+p.skills.study*0.2+rnd(-8,18);if(score>=62){p.edu="大学";p.flags.uni=true;const c=countryById(p.country);const big=c.cities[0];if(p.city!==big.name&&chance(.7))startTravel(p,big.name,"上大学");return "🎓 考上大学了！全家高兴得一晚上没睡。";}if(score>=45&&chance(.4)){return "📖 高考没考上理想的学校，决定复读一年。";}p.eduYears=0;return "📖 高考落榜了。";}},
+ {id:"army",when:p=>ageYears(p)>=18&&ageYears(p)<23&&!p.flags.armyDone,pp:p=>0.001+p.attrs.fitness/100*0.003+p.traits.risk/100*0.002,run(p){p.flags.armyDone=true;p.flags.inArmy=rint(18,24);p.job="军人";p.attrs.fitness=clamp(p.attrs.fitness+15,0,100);return "🎖 他去当兵了，剃了寸头，背上行囊去了军营。";}},
+ {id:"findjob",when:p=>ageYears(p)>=18&&!p.job&&!p.flags.inArmy&&!p.flags.inPrison,pp:p=>0.01,run(p){getJob(p);return null;}},
+ {id:"promote",when:p=>!!p.job&&p.job!=="军人",pp:p=>0.0015+p.traits.diligent/100*0.002,run(p){p.salary=Math.round(p.salary*1.2);return `📈 工作表现出色，升职加薪了，月薪涨到${fmtMoney(p.salary)}。`;}},
+ {id:"fired",when:p=>!!p.job&&p.job!=="军人",pp:p=>0.001+(S.world.recession>0?0.004:0)+(S.world.era.decline.includes(p.industry||"")?0.004:0),run(p){const j=p.job;p.job=null;p.salary=0;p.attrs.mood=clamp(p.attrs.mood-12,0,100);p.anxiety=clamp(p.anxiety+15,0,100);return `📉 被公司裁员了（${j}），失业了。`;}},
+ {id:"startup",when:p=>ageYears(p)>=22&&ageYears(p)<45&&!p.job,pp:p=>0.001+p.skills.business/100*0.004+p.traits.risk/100*0.003,run(p){const need=rint(50000,200000);if(p.money+p.familyMoney*0.5<need){return "💡 想创业开店，但启动资金不够，只能先打工攒钱。";}p.money-=Math.round(need*0.4);p.job="创业者";p.industry=pick(S.world.era.boom);p.salary=0;return `🚀 他创业了：开了家做${p.industry}的小公司，把积蓄都投了进去。`;}},
+ {id:"startup_win",when:p=>p.job==="创业者",major:true,pp:p=>0.0015+p.skills.business/100*0.003+p.classMod.network/100*0.002,run(p){const gain=rint(200000,2000000);p.money+=gain;p.salary=rint(20000,80000);return `🎉 创业成功了！公司做起来了，一下子赚了${fmtMoney(gain)}。`;}},
+ {id:"startup_fail",when:p=>p.job==="创业者",major:true,pp:p=>0.0015,run(p){const debt=rint(50000,300000);p.debt+=debt;p.job=null;p.anxiety=clamp(p.anxiety+30,0,100);addTrauma(p,"创业失败负债",7);return `💸 创业失败了，欠了${fmtMoney(debt)}的债，整夜整夜睡不着。`;}},
+ {id:"buyhouse",when:p=>ageYears(p)>=25&&p.money>150000&&!p.house,pp:p=>0.002,run(p){const price=rint(800000,2500000);const down=Math.round(price*0.3);if(p.money<down)return null;p.money-=down;p.mortgage=price-down;p.house="一套房";return `🏠 买房了！首付${fmtMoney(down)}，剩下${fmtMoney(p.mortgage)}要慢慢还房贷。`;}},
+ {id:"marry",when:p=>ageYears(p)>=22&&ageYears(p)<45&&!p.spouse,pp:p=>0.002+p.traits.extro/100*0.002,run(p){let who=p.partner?S.people[p.partner]:null;if(!who){who=makePerson({sex:p.sex==="男"?"女":"男",birthDay:dayCount()-Math.round(ageYears(p)*365),gen:p.gen});who.isNPC=true;who.role="spouse";relInit(p,who,rint(65,90));}marry(p,who);return null;}},
+ {id:"baby",when:p=>!!p.spouse&&ageYears(p)>=22&&ageYears(p)<45&&p.children.length<4,pp:p=>0.002,run(p){if(p.sex==="女"&&!p.pregnant){p.pregnant=9;logEvt("🤰 她怀孕了！",true);return null;}haveChild(p);return null;}},
+ {id:"divorce",when:p=>!!p.spouse,pp:p=>0.0006,run(p){const sp=S.people[p.spouse];p.spouse=null;if(sp)sp.spouse=null;p.familyMoney=Math.round(p.familyMoney*0.6);addTrauma(p,"离婚",7);return `💔 和${sp?sp.name:"配偶"}离婚了，家散了。`;}},
+ {id:"ill",when:p=>true,pp:p=>0.0015+(100-p.attrs.health)/100*0.004,run(p){p.attrs.health=clamp(p.attrs.health-15,0,100);const bill=rint(2000,60000);if(bill>p.money+p.familyMoney*0.5){p.money=0;p.familyMoney=Math.max(0,p.familyMoney-bill);if(chance(.5))logEvt("🏥 一场大病，医药费掏空了家底。");}else{const fromSelf=Math.min(p.money,bill);p.money-=fromSelf;p.familyMoney=Math.max(0,p.familyMoney-(bill-fromSelf));}p.flags.ill="大病";return `🤒 生了一场大病，医药费花了${fmtMoney(bill)}。`;}},
+ {id:"ill_recover",when:p=>p.flags.ill==="大病",pp:()=>0.05,run(p){delete p.flags.ill;p.attrs.health=clamp(p.attrs.health+20,0,100);return "🤒 病慢慢好了，重新站了起来。";}},
+ {id:"accident",when:p=>true,pp:p=>0.0004,run(p){p.attrs.health=clamp(p.attrs.health-20,0,100);if(chance(.4))addTrauma(p,"车祸惊吓",6);return "🚗 出车祸了！幸好命大，住进了医院。";}},
+ {id:"impulse_spend",when:p=>ageYears(p)>=16&&p.money>3000,pp:p=>impulse(p)*0.004,run(p){const c=rint(500,5000);p.money-=c;return `🛍 一冲动花了${fmtMoney(c)}买了根本用不上的东西，事后有点后悔。`;}},
+ {id:"impulse_quit",when:p=>!!p.job&&p.job!=="军人",pp:p=>impulse(p)*0.0012,run(p){const j=p.job;p.job=null;p.salary=0;return `😤 一气之下把工作辞了（${j}），当时痛快，晚上就开始慌。`;}},
+ {id:"gamble",when:p=>ageYears(p)>=18,pp:p=>impulse(p)*0.0015,run(p){const c=rint(1000,20000);if(chance(.4)){p.money+=c;return `🎰 赌了一把，居然赢了${fmtMoney(c)}。`;}p.money=Math.max(0,p.money-c);p.debt+=chance(.5)?c:0;return `🎰 赌输了${fmtMoney(c)}，越输越想翻本。`;}},
+ {id:"parent_expect",when:p=>ageYears(p)>=6&&ageYears(p)<23,pp:p=>0.003,run(p){const f=findNPC("father")||findNPC("mother");if(!f)return null;const exp=p.rels[f.id]?p.rels[f.id].expect:60;if(exp>70&&p.attrs.learning<55){p.attrs.mood=clamp(p.attrs.mood-8,0,100);p.anxiety=clamp(p.anxiety+10,0,100);return `😰 ${f.name}又拿别人家的孩子跟他比，期待压得他喘不过气。`;}return `😊 ${f.name}说：“尽力就好，爸妈不逼你。”他心里暖了一下。`;}},
+ {id:"study_abroad",when:p=>ageYears(p)>=18&&ageYears(p)<26&&(p.edu==="大学"||p.attrs.learning>70),pp:p=>0.001+p.classMod.network/100*0.002,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"留学")){p.edu="大学";return null;}return null;}},
+ {id:"migrate",when:p=>ageYears(p)>=25&&ageYears(p)<45,pp:p=>0.0006,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"移民定居")){return null;}return null;}},
+ {id:"travel_trip",when:p=>ageYears(p)>=18&&p.money>8000,pp:p=>0.002,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"旅行")){p.attrs.mood=clamp(p.attrs.mood+12,0,100);return null;}return null;}},
+];
+function crimeHit(p,what){
+  p.flags.criminal=true; p.attrs.character=clamp(p.attrs.character-8,0,100);
+  if(chance(.45)){const yrs=rint(1,8);p.flags.inPrison=yrs*365;p.job=null;p.salary=0;
+    if(ageYears(p)<18){logEvt(`🚔 ${p.name}因为${what}被抓了，未成年，送进了少年管教所，要待${yrs}年。`,true);return `🚔 因为${what}被警察带走了，送进了少年管教所。`;}
+    logEvt(`🚔 ${p.name}因为${what}被抓了，判了${yrs}年。`,true);return `🚔 因为${what}被警察带走了。`;}
+  return `🥊 ${what}，差点被抓，逃过一劫。`;
+}
+function rollDailyEvents(p){
+  let fired=0;
+  for(const ev of EVENTS){
+    if(fired>=2)break;
+    if(!ev.when(p))continue;
+    const pr=typeof ev.pp==="function"?ev.pp(p):(ev.p||0);
+    if(Math.random()<pr){
+      const text=ev.run(p);
+      if(text){logEvt(text,ev.major);fired++;if(ev.major){pauseForEvent(text);}}
+    }
+  }
+}
+function pauseForEvent(text){
+  if(!S)return;
+  if(S.fastForwarding)return; // 快进测试时不弹窗，继续跑
+  prevSpeed=S.speed||12; S.speed=0; S.pausedByEvent=true;
+  showModal("💥 人生大事",text,[{t:"继续看着",fn:()=>{S.speed=prevSpeed;S.pausedByEvent=false;}}]);
+}
+/* ============ 世代传承 ============ */
+function succession(){
+  const dead=focus();
+  const kids=dead.children.map(id=>S.people[id]).filter(q=>q&&q.alive);
+  const sibKids=[];for(const sid of dead.siblings){const s=S.people[sid];if(s)for(const cid of s.children){const c=S.people[cid];if(c&&c.alive)sibKids.push(c);}}
+  const sibs=dead.siblings.map(id=>S.people[id]).filter(q=>q&&q.alive);
+  const heirs=[...kids,...sibKids,...sibs];
+  const others=Object.values(S.people).filter(q=>q.alive&&q.id!==dead.id&&ageYears(q)<40);
+  const done=(heir,note)=>{
+    S.focusId=heir.id; heir.isNPC=false; delete heir.role;
+    logEvt(`🌱 视角传给了${heir.name}（${ageStr(heir)}，${note}）。${dead.name}的故事结束了，但这个世界还在继续。`,true);
+    if(!S.fastForwarding)showModal("🌱 传承",`${dead.name}去世了，享年${ageStr(dead)}。\n\n视角传给了${heir.name}（${ageStr(heir)}，${note}）。世界没有停下，血脉还在延续。`,[{t:"继续看下去",fn:()=>{}}]);
+    save();
+  };
+  if(S.fastForwarding){ // 快进时自动传给第一个血亲，不等人选
+    if(heirs.length){done(heirs[0],kids.includes(heirs[0])?"他的孩子":sibKids.includes(heirs[0])?"兄弟姐妹的孩子":"他的兄弟姐妹");return;}
+    if(others.length){const h=others.sort((a,b)=>ageYears(a)-ageYears(b))[0];done(h,"世界上另一个年轻人");return;}
+    const nb=makePerson({});nb.birthDay=dayCount();nb.isNPC=false;done(nb,"一个新出生的婴儿");return;
+  }
+  if(heirs.length===1){done(heirs[0],kids.includes(heirs[0])?"他的孩子":sibKids.includes(heirs[0])?"兄弟姐妹的孩子":"他的兄弟姐妹");return;}
+  if(heirs.length>1){
+    const btns=heirs.slice(0,4).map(h=>({t:`跟${h.name}（${ageStr(h)}）`,fn:()=>done(h,kids.includes(h)?"他的孩子":sibKids.includes(h)?"兄弟姐妹的孩子":"他的兄弟姐妹")}));
+    showModal("🌱 传承",`${dead.name}去世了，享年${ageStr(dead)}。他留下了${heirs.length}个血亲后代，你想跟着谁继续看下去？`,btns);
+    return;
+  }
+  if(others.length){const h=others.sort((a,b)=>ageYears(a)-ageYears(b))[0];done(h,"世界上另一个年轻人");return;}
+  // 血脉断了：世界里诞生一个新的婴儿，继续
+  const nb=makePerson({});nb.birthDay=dayCount();nb.isNPC=false;
+  done(nb,"一个新出生的婴儿");
+}
+/* ============ 社区：邻居、店主、街坊，人人有血有肉 ============ */
+const SURN2=["陈","王","李","张","刘","赵","周","吴","郑","黄","杨","徐","孙","胡","朱","何","郭","马","罗","梁","宋","谢","韩","唐","冯","于","董","萧","程","曹"];
+const GIVEN_M=["建国","志强","志远","国强","卫东","文斌","大伟","小军","阿强","老根","有福","顺子","铁柱","贵生","春生","福来","金水","长青","德顺","满仓"];
+const GIVEN_F=["桂兰","秀英","淑芬","丽华","玉梅","春花","翠花","桂香","秀珍","爱华","招娣","金花","银花","凤英","菊香","兰英","惠珍","秋月","淑琴","巧云"];
+const QUIRKS=["抠门","热心肠","爱占小便宜","沉默寡言","暴脾气","和蔼","爱管闲事","迷信","爱干净","话痨","老烟枪","爱下棋","信佛","爱跳广场舞","刀子嘴豆腐心"];
+function uniqName(sex){
+  if(!S.usedNames)S.usedNames={};
+  for(let i=0;i<50;i++){
+    const n=pick(SURN2)+(sex==="男"?pick(GIVEN_M):pick(GIVEN_F));
+    if(!S.usedNames[n]){S.usedNames[n]=1;return n;}
+  }
+  return pick(SURN2)+(sex==="男"?pick(GIVEN_M):pick(GIVEN_F))+rint(2,9);
+}
+function makeCommunityNPC(role,ageYears,job){
+  const sex=role==="wife"||role==="mom"||role==="shopwife"||role==="vendorF"?"女":(role==="husband"||role==="dad"||role==="shopowner"?"男":(chance(.5)?"男":"女"));
+  const np=makePerson({sex,birthDay:dayCount()-Math.round(ageYears*365),gen:-1});
+  np.name=uniqName(sex); np.isNPC=true; np.role=role; np.job=job;
+  np.quirk=pick(QUIRKS); np.goal=pick(["攒钱给孩子买房","开个分店","身体健康","孩子考上大学","回老家养老","存钱旅游","把店做大"]);
+  np.routine=pick(["每天5点半开门","爱在楼下晒太阳","晚饭后必散步","周末去菜市场","爱和邻居聊天","每天雷打不动看新闻"]);
+  np.attrs.learning=rint(20,70); np.attrs.social=rint(30,90);
+  return np;
+}
+function genCommunity(p){
+  const c=[];
+  const g1=makeCommunityNPC("neighborOld",68,"退休工人"); g1.name=uniqName("男"); g1.spouseName=uniqName("女");
+  const g2=makeCommunityNPC("neighborOldW",66,"退休教师"); g2.name=uniqName("女");
+  const noisyH=makeCommunityNPC("neighborNoisy",35,"货车司机"); const noisyW=makeCommunityNPC("neighborNoisyW",33,"超市收银");
+  const singleMom=makeCommunityNPC("mom",31,"保洁员"); const smKid=makePerson({sex:pick(["男","女"]),birthDay:dayCount()-7*365,gen:0}); smKid.isNPC=true; smKid.role="neighborKid"; smKid.name=uniqName(smKid.sex);
+  const shopO=makeCommunityNPC("shopowner",48,"早餐店老板"); const shopW=makeCommunityNPC("shopwife",46,"早餐店老板娘");
+  const vendor=makeCommunityNPC("vendor",55,"菜市场摊主");
+  const shopAunt=makeCommunityNPC("shopaunt",52,"小卖部阿姨");
+  const guard=makeCommunityNPC("guard",58,"学校保安");
+  const driver=makeCommunityNPC("driver",44,"公交司机");
+  const landlord=makeCommunityNPC("landlord",60,"房东");
+  c.push(g1,g2,noisyH,noisyW,singleMom,smKid,shopO,shopW,vendor,shopAunt,guard,driver,landlord);
+  S.community={list:c.map(x=>x.id),shopOpen:true,shopOwner:shopO.id,shopClosedDays:0};
+  relInit(p,g1,rint(40,70)); relInit(p,shopO,rint(50,75)); relInit(p,shopW,rint(50,75));
+  logEvt(`🏘 搬进了这个社区：对门是${g1.name}老两口，楼上两口子总吵架，楼下是${shopO.name}的早餐店，每天5点半就飘出香味。`);
+}
+function communityMonthly(){
+  const p=focus(), com=S.community; if(!com)return;
+  const get=id=>S.people[id];
+  // 邻居吵架：吵得他睡不着
+  if(chance(.12)){p.attrs.energy=clamp(p.attrs.energy-8,0,100);p.attrs.mood=clamp(p.attrs.mood-5,0,100);logEvt("🔊 楼上两口子半夜又吵起来了，摔东西的声音吵得他没睡好。");}
+  // 早餐店老板娘生病，店关门几天
+  if(com.shopOpen&&chance(.05)){com.shopOpen=false;com.shopClosedDays=rint(3,9);const w=get(com.shopOwner);logEvt(`🤒 早餐店老板娘病了，店要关几天门，他得换地方吃早饭了。`);}
+  if(!com.shopOpen){if(--com.shopClosedDays<=0){com.shopOpen=true;logEvt("🍜 早餐店重新开门了，熟悉的香味又回来了。");}}
+  // 邻居家孩子考上大学
+  if(chance(.04)){logEvt("🎓 邻居家的孩子考上大学了，楼道里贴了红榜，爸妈看他的眼神有点复杂。");}
+  // 店铺换老板
+  if(chance(.03)){const old=get(com.shopOwner);const nw=makeCommunityNPC("shopowner",rint(30,50),"早餐店老板");nw.name=uniqName(nw.sex);com.list.push(nw.id);com.shopOwner=nw.id;logEvt(`🏪 楼下早餐店换老板了，现在是${nw.name}在经营，味道跟以前不太一样。`);}
+  // 有人搬走、有人搬进来（社区新陈代谢）
+  if(chance(.05)){const leavers=com.list.filter(id=>{const q=get(id);return q&&q.alive&&q.role.startsWith("neighbor")});if(leavers.length){const lv=get(pick(leavers));lv.alive=false;lv.moved=true;lv.deathDay=dayCount();lv.deathCause="搬走";logEvt(`🚚 ${lv.name}一家搬走了，房子空了出来。`);const nw=makeCommunityNPC("neighborNew",rint(25,45),pick(["程序员","快递员","老师","护士"]));nw.name=uniqName(nw.sex);com.list.push(nw.id);logEvt(`🏠 新邻居搬进来了：${nw.name}，${nw.job}，${nw.quirk}。`);}}
+  // 社区里有人去世
+  if(chance(.02)){const olds=com.list.filter(id=>{const q=get(id);return q&&q.alive&&ageYears(q)>70});if(olds.length){const d=get(pick(olds));killPerson(d,"年老去世");logEvt(`🕯 社区里的${d.name}去世了，楼道里摆起了花圈。`);}}
+}
+/* ============ 学校：同学、老师、考试、毕业 ============ */
+function genClass(p,stageName){
+  const n=rint(7,9), cls=[];
+  const roles=["同桌","死党","好朋友","好朋友","捣蛋鬼","班长","暗恋对象","普通同学","普通同学"];
+  for(let i=0;i<n;i++){
+    const sex=chance(.5)?"男":"女";
+    const cm=makePerson({sex,birthDay:dayCount()-Math.round(ageYears(p)*365),gen:p.gen});
+    cm.name=uniqName(sex); cm.isNPC=true; cm.role="classmate";
+    cm.clsRole=roles[i]||"普通同学";
+    cm.grades=rint(25,98); cm.familyBg=pick(["富裕","小康","普通","贫困"]);
+    cm.quirk=pick(QUIRKS);
+    relInit(p,cm,cm.clsRole==="死党"?rint(75,92):cm.clsRole==="捣蛋鬼"?rint(15,35):rint(45,75));
+    cls.push(cm.id);
+  }
+  const ht=makePerson({sex:pick(["男","女"]),birthDay:dayCount()-rint(28,50)*365,gen:-1});
+  ht.name=uniqName(ht.sex); ht.isNPC=true; ht.role="teacher";
+  ht.teacherStyle=pick(["严厉","温柔","偏心","幽默","负责"]);
+  ht.job="班主任";
+  const st=makePerson({sex:pick(["男","女"]),birthDay:dayCount()-rint(26,45)*365,gen:-1});
+  st.name=uniqName(st.sex); st.isNPC=true; st.role="teacher"; st.teacherStyle=pick(["严厉","温柔","幽默"]); st.job="任课老师";
+  p.school={stage:stageName,classmates:cls,teachers:[ht.id,st.id],rank:0,className:stageName+rint(1,6)+"班"};
+  logEvt(`🏫 ${stageName}开学了：${p.school.className}。同桌是${S.people[cls[0]].name}，班主任${ht.name}老师${ht.teacherStyle}。`);
+}
+function schoolMonthly(p){
+  if(!p.school||ageYears(p)<6||ageYears(p)>=23)return;
+  const sc=p.school;
+  // 月考排名：成绩+努力+阶层教育资源
+  const myScore=p.attrs.learning*p.classMod.eduQ+p.skills.study*0.3+rnd(-5,10);
+  let rank=1; for(const id of sc.classmates){const cm=S.people[id];if(cm&&cm.alive&&cm.grades+rnd(-8,8)>myScore)rank++;}
+  sc.rank=rank;
+  if(chance(.5))logEvt(`📝 月考发榜了，他排第${rank}名（全班${sc.classmates.length+1}人）。`);
+  // 同学关系漂移：有人转学、有人疏远
+  if(chance(.006)&&sc.classmates.length>4){const id=pick(sc.classmates);const cm=S.people[id];if(cm&&cm.alive){cm.alive=false;cm.moved=true;cm.deathDay=dayCount();cm.deathCause="转学";logEvt(`🚚 同学${cm.name}转学走了，以后再也没见过。`);sc.classmates=sc.classmates.filter(x=>x!==id);}}
+  if(chance(.08)){const id=pick(sc.classmates);const cm=S.people[id];if(cm&&cm.alive&&p.rels[id]){p.rels[id].v=clamp(p.rels[id].v-12,0,100);if(p.rels[id].v<25)p.rels[id].status="疏远";}}
+}
+const SCHOOL_EVENTS=[
+ {id:"exam_rank",when:p=>p.school&&ageYears(p)>=6&&ageYears(p)<23,pp:()=>0.002,run(p){const r=p.school.rank||rint(1,10);if(r<=3){p.attrs.mood=clamp(p.attrs.mood+8,0,100);return `🏆 这次考了全班第${r}名，老师在班上表扬了他。`;}if(r>=8){p.attrs.mood=clamp(p.attrs.mood-6,0,100);return `📉 这次考了第${r}名，回家不敢把卷子拿出来。`;}return `📝 考试成绩出来了，中不溜，不上不下。`;}},
+ {id:"sports_day",when:p=>p.school&&ageYears(p)>=6&&ageYears(p)<19,pp:()=>0.001,run(p){if(p.attrs.fitness>60){p.skills.sports=clamp(p.skills.sports+5,0,100);return "🏃 运动会上他跑了第一名，全班都在喊他的名字。";}return "🏃 运动会，他坐在看台上给同学加油。";}},
+ {id:"spring_trip",when:p=>p.school&&ageYears(p)>=6&&ageYears(p)<19,pp:()=>0.001,run(p){p.attrs.mood=clamp(p.attrs.mood+10,0,100);return "🌸 春游去了，大家在草地上野餐、拍照，笑了一整天。";}},
+ {id:"teacher_praise",when:p=>p.school&&ageYears(p)>=6&&ageYears(p)<23,pp:()=>0.002,run(p){const t=S.people[pick(p.school.teachers)];if(!t)return null;p.attrs.mood=clamp(p.attrs.mood+6,0,100);return `👩‍🏫 ${t.name}老师${t.teacherStyle==="严厉"?"难得地":""}表扬了他一句，他高兴了一整天。`;}},
+ {id:"teacher_talk",when:p=>p.school&&ageYears(p)>=6&&ageYears(p)<19,pp:()=>0.0015,run(p){const t=S.people[pick(p.school.teachers)];if(!t)return null;if(p.attrs.learning<45){p.attrs.mood=clamp(p.attrs.mood-5,0,100);return `👩‍🏫 ${t.name}老师把他叫去谈话，还请了家长。`;}return `👩‍🏫 ${t.name}老师找他谈心，问他以后想做什么。`;}},
+ {id:"graduation",when:p=>p.school&&((ageYears(p)>=11.9&&ageYears(p)<12.1&&p.school.stage==="小学")||(ageYears(p)>=14.9&&ageYears(p)<15.1&&p.school.stage==="初中")||(ageYears(p)>=17.9&&ageYears(p)<18.1&&p.school.stage==="高中")),major:true,pp:()=>0.2,run(p){const st=p.school.stage;const mates=p.school.classmates.map(id=>S.people[id]).filter(Boolean);p.school=null;return `🎓 ${st}毕业了！大家在黑板上写满了名字，互相留了联系方式，说好以后常联系——可谁都知道，很多人这一散就是一辈子。`;}},
+ {id:"zhongkao",when:p=>ageYears(p)>=14.9&&ageYears(p)<15.1&&!p.flags.zhongkaoDone,major:true,pp:()=>1,run(p){p.flags.zhongkaoDone=true;const sc=p.attrs.learning*p.classMod.eduQ+rnd(-5,12);if(sc>=68){p.classMod.eduQ=clamp(p.classMod.eduQ+0.2,0,2);return "🎓 中考考上了重点高中！";}if(sc>=45)return "📖 中考上了普通高中。";p.classMod.eduQ=clamp(p.classMod.eduQ-0.1,0,2);return "📖 中考没考好，去了普通高中。";}},
+ {id:"xiaoshengchu",when:p=>ageYears(p)>=11.9&&ageYears(p)<12.1&&!p.flags.xscDone,major:true,pp:()=>1,run(p){p.flags.xscDone=true;const sc=p.attrs.learning*p.classMod.eduQ+rnd(-5,12);if(sc>=65)return "🎒 小升初考进了重点初中！";return "🎒 小升初进了普通初中。";}},
+ {id:"reunion",when:p=>ageYears(p)>=25,pp:()=>0.0007,run(p){const mates=Object.values(S.people).filter(q=>q.role==="classmate"&&q.alive);if(!mates.length)return null;const m=pick(mates);return `🍻 同学聚会上遇到了${m.name}，两个人聊起当年上学的事，笑得前仰后合——当年那个${m.clsRole}，现在${m.job||"过得还不错"}。`;}},
+ {id:"crush",when:p=>p.school&&ageYears(p)>=12&&ageYears(p)<20&&!p.partner,pp:()=>0.001,run(p){const cms=p.school.classmates.map(id=>S.people[id]).filter(q=>q&&q.alive&&q.sex!==p.sex);if(!cms.length)return null;const c=pick(cms);return `💌 他偷偷喜欢上了${c.name}，上课总忍不住往那个方向看。`;}},
+];
+EVENTS.push(...SCHOOL_EVENTS);
+/* ============ 现场生成对话与互动：没有固定台词，一切现算 ============ */
+function npcMood(q){
+  // 每个人每天的心情都不一样：性格 + 当天运气，现算
+  const seed=(dayCount()*7+q.id.charCodeAt(1)*13)%100;
+  return clamp(55+Math.round(Math.sin(seed)*22)+(q.traits?q.traits.extro/10-5:0),5,100);
+}
+function toneWord(mood,rel){
+  if(mood>=75)return rel>70?"热情":"客气";
+  if(mood>=50)return rel>70?"随意":"平淡";
+  if(mood>=30)return rel>70?"敷衍":"冷淡";
+  return "不耐烦";
+}
+function genDialogue(sp,li,topic){
+  // 每句话按“谁在说、对谁说、为什么事、心情如何、关系如何”现场组织
+  const mood=npcMood(li), rel=sp.rels[li.id]?sp.rels[li.id].v:50;
+  const tone=toneWord(mood,rel);
+  const open={热情:["“行啊，没问题！”","“这有啥，拿去！”","“咱俩谁跟谁啊。”"],客气:["“嗯……行吧。”","“可以是可以，不过……”","“那你快点啊。”"],随意:["“哦，拿去吧。”","“自己拿，别弄丢了。”","“就这一次啊。”"],平淡:["“嗯。”","“你自己看着办。”","“我考虑考虑。”"],敷衍:["“哎呀，我这儿也忙着呢。”","“下次吧，今天不行。”"],冷淡:["“不行。”","“别找我。”","“我凭什么帮你？”"],不耐烦:["“烦不烦啊你！”","“滚一边去！”","“没看见我正忙着吗？”"]}[tone];
+  const why={借作业:"作业",借钱:"钱",表白:"这件事",求助:"这个忙",借宿:"住一晚"}[topic]||"这个";
+  const close={热情:["说完还拍了拍他的肩膀。","两个人笑了起来。"],客气:["说完低头继续忙自己的事。","语气里还是留了点余地。"],随意:["说完就转过头去了。","一副无所谓的样子。"],平淡:["脸上没什么表情。","说完就走开了。"],敷衍:["说完找了个借口溜了。","眼神飘向别处。"],冷淡:["说完头也不回地走了。","气氛一下子冷了下来。"],不耐烦:["说完重重地关上了门。","周围的人都看了过来。"]}[tone];
+  return {tone,mood,rel,text:`${li.name}${pick(open)}${pick(close)}`};
+}
+function askInteraction(topic){
+  const p=focus();
+  // 找身边合适的人：同桌/朋友/老师/父母，按话题
+  let cands=[];
+  if(topic==="借作业"){cands=(p.school?p.school.classmates:[]).map(id=>S.people[id]).filter(q=>q&&q.alive);}
+  if(topic==="借钱"){cands=Object.values(S.people).filter(q=>q.alive&&q.role==="friend");}
+  if(topic==="表白"){cands=(p.school?p.school.classmates:[]).map(id=>S.people[id]).filter(q=>q&&q.alive&&q.sex!==p.sex);}
+  if(topic==="求助"){cands=(p.school?p.school.teachers:[]).map(id=>S.people[id]).filter(q=>q&&q.alive);}
+  if(!cands.length){logEvt(`💬 ${p.name}想找人${topic}，可身边没合适的人。`);return;}
+  const li=pick(cands);
+  const mood=npcMood(li), rel=p.rels[li.id]?p.rels[li.id].v:50;
+  const strict=topic==="借作业"&&p.school?(()=>{const t=S.people[p.school.teachers[0]];return t&&t.teacherStyle==="严厉"?18:6})():0;
+  // 成功率现场算：对方性格 + 关系 + 当天心情 + 老师严不严
+  let base=20+rel*0.5+mood*0.3+(li.traits?li.traits.kind/100*20:10);
+  if(topic==="借钱")base-=25;
+  if(topic==="表白")base=15+rel*0.4+mood*0.2+(li.traits?li.traits.extro/100*15:0);
+  const roll=Math.random()*100;
+  const d=genDialogue(p,li,topic);
+  if(topic==="借作业"&&roll<strict){
+    p.attrs.character=clamp(p.attrs.character-3,0,100);
+    logEvt(`💬 ${p.name}找${li.name}借作业抄，${li.name}直接告了老师：“老师，他抄作业！”老师把他叫去训了一顿。`,true);
+    return;
+  }
+  if(roll<base){
+    if(roll<base*0.25&&chance(.5)){ // 骂两句再借
+      logEvt(`💬 ${p.name}找${li.name}${topic==="借作业"?"借作业抄":topic==="借钱"?"借点钱":topic==="表白"?"表白":"帮忙"}，${li.name}先骂了他两句，最后还是答应了。“${d.text}”`);return;
+    }
+    if(topic==="表白"){p.partner=li.id;relInit(p,li,rint(75,95));logEvt(`💕 ${p.name}向${li.name}表白了，${li.name}答应了！两个人正式在一起了。`,true);return;}
+    if(topic==="借钱"){const amt=rint(200,2000);p.money+=amt;logEvt(`💬 ${p.name}找${li.name}借了${fmtMoney(amt)}。“${d.text}”`);return;}
+    logEvt(`💬 ${p.name}找${li.name}${topic==="借作业"?"借作业抄":topic==="借钱"?"借点钱":topic==="表白"?"表白":"帮忙"}，${li.name}答应了。“${d.text}”`);return;
+  }
+  logEvt(`💬 ${p.name}找${li.name}${topic==="借作业"?"借作业抄":topic==="借钱"?"借点钱":topic==="表白"?"表白":"帮忙"}，被拒绝了。“${d.text}”`);
+  if(topic==="表白")addTrauma(p,"表白被拒",4);
+}
+/* ============ 城市会生长、会变老 ============ */
+const TIER_ORDER=["村","镇","小城市","中等城市","大城市","特大城市"];
+function initCityDev(){
+  for(const c of COUNTRIES)for(const ci of c.cities){
+    const t=TIER_ORDER.indexOf(ci.size);
+    if(ci.dev==null)ci.dev=t>=4?rint(55,85):t===3?rint(40,70):t===2?rint(30,60):rint(20,55);
+    if(ci.pop==null)ci.pop=t>=4?rint(300,1200):rint(5,60); // 数据里已定死人口数时不动
+    if(ci.priceMul==null)ci.priceMul=+(0.6+ci.cost*0.35+rnd(-0.1,0.3)).toFixed(2);
+    if(ci.land==null)ci.land={market:true,oldHouse:true,netcafe:true,school:true,mall:t>=3};
+  }
+}
+function cityPriceMul(p){const ci=cityOf(p);return ci?ci.priceMul:1}
+function cityMonthly(){
+  const p=focus();
+  for(const c of COUNTRIES)for(const ci of c.cities){
+    // 发展由经济、时代、人口慢慢推，不是突然一变
+    const drift=(c.econ-55)/100*0.5+(S.world.recession>0?-0.6:0.2)+rnd(-0.4,0.6);
+    ci.dev=clamp(ci.dev+drift,5,98);
+    ci.pop=Math.max(0.2,+(ci.pop*(1+drift/100)).toFixed(1)); // 出生、死亡、迁移让城市变大变小
+    ci.priceMul=clamp(+(ci.priceMul*(1+drift/300)).toFixed(3),0.4,4);
+    // 城市升降级：小城发展成大城，大城也可能衰落
+    const ti=TIER_ORDER.indexOf(ci.size);
+    if(ci.dev>=70&&ti<5){ci.size=TIER_ORDER[ti+1];if(ci.size==="大城市"||ci.size==="特大城市"){ci.metro=1;ci.airport=1;}logEvt(`🏙 ${ci.name}发展起来了：高楼多了起来，${ci.metro?"通了地铁，":""}越来越像个${ci.size}。`,true);}
+    if(ci.dev<25&&ti>0){ci.size=TIER_ORDER[ti-1];logEvt(`🏚 ${ci.name}慢慢衰落了：年轻人走了，街上冷清了不少，现在只是个${ci.size}了。`,true);}
+  }
+  const here=cityOf(p); if(!here)return;
+  // 城市变迁事件（只写他所在的城市，感受最真）
+  if(here.land.market&&chance(.012)){here.land.market=false;logEvt("🏗 家附近的菜市场拆了，盖起了新楼，买菜得走去更远的地方。",true);}
+  if(here.land.oldHouse&&chance(.01)){here.land.oldHouse=false;const comp=rint(200000,900000);p.familyMoney+=comp;logEvt(`🏚 他小时候住的老房子拆迁了，拿到${fmtMoney(comp)}补偿款。回去看了一眼，废墟上什么都不剩了。`,true);}
+  if(here.land.netcafe&&chance(.015)){here.land.netcafe=false;if((p.flags.addicted||0)>30)p.flags.addicted=clamp(p.flags.addicted-20,0,100);logEvt("🏪 常去的那家网吧关门了，招牌都摘了。");}
+  if(!here.land.mall&&chance(.02)){here.land.mall=true;logEvt("🏬 家附近新开了一家大商场，周末人山人海。");}
+  if(chance(.02)){logEvt("🚧 家门口的路在修，拓宽了，尘土飞扬，走了几个月。");}
+  if(chance(.02)){const up=chance(.55);here.priceMul=clamp(+(here.priceMul*(up?1.15:0.88)).toFixed(2),0.4,4);logEvt(up?`📈 ${here.name}的房价又涨了，买房越来越难。`:`📉 ${here.name}的房价跌了一些。`);}
+  if(here.land.school&&chance(.008)){here.land.school=false;logEvt("🏫 他的母校搬走了，原址改成了写字楼。");}
+}
+/* ============ 世界有前史：父母出生前就有故事 ============ */
+function genParentHistory(father,mother,baby){
+  const fHist=[
+    `${father.name}年轻时家里很穷，16岁就出来打工，攒了十年才在城里落脚。`,
+    `${father.name}本来想当画家，后来为了养家放下了画笔，这事他很少提。`,
+    `${father.name}年轻时当过兵，退伍后分配到厂里，一干就是二十年。`,
+    `${father.name}做过小生意，赔过一次大的，从那以后再也不敢冒险。`,
+  ];
+  const mHist=[
+    `${mother.name}年轻时成绩很好，本来能考上大学，因为家里供不起弟弟上学，她把机会让了出来。`,
+    `${mother.name}曾经有个很喜欢的人，后来因为异地分了手，这事她藏在心里几十年。`,
+    `${mother.name}年轻时在纺织厂上班，认识了${father.name}，两个人是自由恋爱。`,
+    `${mother.name}小时候家里重男轻女，她发誓自己的孩子绝不受这个委屈。`,
+  ];
+  father.backstory=pick(fHist); mother.backstory=pick(mHist);
+  baby.familyPattern=father.familyPattern||pick(["打骂教育","溺爱","放养","讲道理"]);
+  logEvt(`📖 这个家有前史：${father.backstory}${mother.backstory}上一代的伤和债，都传下来了。`);
+}
+/* ============ 生病是一个过程 ============ */
+function illnessStep(p){
+  const il=p.illness; if(!il)return;
+  il.daysLeft--;
+  if(il.stage==="发烧"){p.attrs.health=clamp(p.attrs.health-1,0,100);if(il.daysLeft<=0){il.stage="去医院";il.daysLeft=1;logEvt("🤒 烧了两天，爸妈带他去医院排队，挂号、化验、打针，一折腾就是一上午。");}}
+  else if(il.stage==="去医院"){p.attrs.health=clamp(p.attrs.health-1,0,100);if(il.daysLeft<=0){il.stage="吃药躺着";il.daysLeft=rint(2,5);logEvt("💊 医生开了药，让回家躺几天，请了假，在家喝粥、量体温。");}}
+  else if(il.stage==="吃药躺着"){p.attrs.health=clamp(p.attrs.health+2,0,100);if(il.daysLeft<=0){p.illness=null;delete p.flags.ill;p.attrs.health=clamp(p.attrs.health+8,0,100);logEvt("🤒 病好了，能下床了，就是还有点虚。");}}
+}
+function updateDesire(p){
+  const a=ageYears(p);
+  p.desire=a<6?"想要一个新玩具":a<12?"想要一台游戏机":a<18?"想要被喜欢的人注意":a<25?"想要钱，想要出人头地":a<35?"想要一个安稳的家":a<50?"想要被认可，想要体面":a<65?"想要孩子过得好":p.attrs.health<50?"想要健康，想要有人陪":"想要儿孙常回来看看";
+}
+/* ============ 环境声音 ============ */
+function ambientSound(loc,h,weather){
+  if(weather==="雨")return "雨声哗哗，雨点打在窗上。";
+  if(loc==="kitchen"&&h<9)return "早餐店的油锅滋滋作响，豆浆的香气飘出来。";
+  if(loc==="school")return h===8?"上课铃响了。":h===12?"下课铃响，楼道里一下子热闹起来。":"粉笔在黑板上沙沙作响。";
+  if(loc==="park")return "蝉鸣一阵一阵，树影摇晃。";
+  if(loc==="street")return "街上车来车往，远处有人在放鞭炮。";
+  if(loc==="living"&&h>=21)return "楼下传来麻将声，夹着几声狗叫。";
+  if(loc==="bedroom"&&h>=23)return "深夜很静，偶尔一声狗叫。";
+  if(loc==="netcafe")return "键盘噼啪响，夹杂着游戏里的喊叫。";
+  if(loc==="court")return "篮球砰砰地砸在地上。";
+  return "";
+}
+/* ============ 深度事件（第一批） ============ */
+const DEPTH_EVENTS=[
+ {id:"ill_process",when:p=>!p.illness&&ageYears(p)>=1,pp:p=>0.0012+(100-p.attrs.health)/100*0.003,run(p){p.illness={stage:"发烧",daysLeft:rint(1,3)};p.flags.ill="生病";return "🤒 发烧了，浑身没劲，嗓子疼得咽不下东西。";}},
+ {id:"scar",when:p=>p.attrs.health<70,pp:()=>0.001,run(p){const s=pick(["眉角一道疤","膝盖上一块疤","手臂上烫伤的疤","额头上小时候摔的疤"]);if(!p.scars.includes(s))p.scars.push(s);return `🩹 受伤留了疤：${s}，以后每次照镜子都能看见。`;}},
+ {id:"rain_wet",when:p=>S.world.weather==="雨",pp:()=>0.004,run(p){p.attrs.mood=clamp(p.attrs.mood-2,0,100);return "🌧 出门没带伞，淋了一身雨，鞋里全是水。";}},
+ {id:"heat",when:p=>S.world.temp>=30,pp:()=>0.002,run(p){if(chance(.2)){p.attrs.health=clamp(p.attrs.health-6,0,100);return "🥵 天太热了，中暑了，头晕目眩，赶紧找了个阴凉地坐下。";}return "🥵 热得汗流浃背，衣服都湿透了。";}},
+ {id:"cold",when:p=>S.world.temp<=2,pp:()=>0.002,run(p){p.attrs.mood=clamp(p.attrs.mood-2,0,100);return "🥶 冷得直哆嗦，手都冻僵了。";}},
+ {id:"bland",when:p=>true,pp:()=>0.01,run(p){return pick(["今天没什么特别的，就是普通的一天。","起床、上学、吃饭、睡觉，平平淡淡的一天。","今天和昨天差不多，没什么事发生。","平淡的一天，但平淡本身就是生活。"]);}},
+ {id:"rumor",when:p=>ageYears(p)>=10,pp:()=>0.002,run(p){const r=pick(["听说邻居家出事了，也不知道是真是假。","听说远方有个地方地震了，消息传过来已经变了样。","听人说学校要换校长了，传得有鼻子有眼的。","听说有个同学家里很有钱，也不知道谁传出来的。"]);return `👂 ${r}`;}},
+ {id:"rep_down",when:p=>p.flags.criminal,pp:()=>0.002,run(p){p.rep=clamp(p.rep-5,0,100);return "👀 他做的事在学校和社区里传开了，别人看他的眼光变了，走在路上都觉得有人在议论。";}},
+ {id:"rep_up",when:p=>p.attrs.character>75,pp:()=>0.0015,run(p){p.rep=clamp(p.rep+4,0,100);return "👍 邻居们都说这孩子人品好，有事都愿意找他帮忙。";}},
+ {id:"tuition",when:p=>ageYears(p)>=6&&ageYears(p)<19,pp:()=>0.0006,run(p){const fee=rint(500,5000);p.familyMoney-=fee;return `💰 开学要交学费${fmtMoney(fee)}，爸妈数了半天钱。`;}},
+ {id:"idcard",when:p=>ageYears(p)>=15.9&&ageYears(p)<16.1&&!p.flags.idDone,pp:()=>1,run(p){p.flags.idDone=true;return "🪪 满16岁了，去派出所办了身份证，从今天起，他算是个有证件的人了。";}},
+ {id:"license",when:p=>ageYears(p)>=18&&ageYears(p)<30,pp:p=>0.001+p.traits.risk/100*0.002,run(p){if(p.money<5000)return null;p.money-=5000;p.flags.license=true;return "🚗 考了驾照，花了5000块。";}},
+ {id:"policy",when:p=>true,major:true,pp:()=>0.0004,run(p){const pol=pick(["高考改革了，考试科目变了。","出了房产税的风声，买房的人都慌了。","二胎政策放开了，身边好多人生了二胎。","退休年龄要延迟了，大家都在议论。","城里开始整治网吧，未成年的进不去了。"]);return `📜 政策变了：${pol}`;}},
+ {id:"lottery",when:p=>ageYears(p)>=18,pp:p=>0.001+p.luck/100*0.002,run(p){if(chance(.85)){p.money-=10;return "🎟 买了张彩票，没中。";}const w=rint(500,50000);p.money+=w;return `🎉 彩票中了${fmtMoney(w)}！他觉得自己运气来了。`;}},
+ {id:"fortune",when:p=>ageYears(p)>=16,pp:()=>0.001,run(p){return "🔮 他去算了个命，算命的说他今年会转运，也不知道是真是假。";}},
+ {id:"funeral_weight",when:p=>p.traumas.some(t=>t.name.includes("离世"))&&chance(.3),pp:()=>0.002,run(p){const t=p.traumas.find(t=>t.name.includes("离世"));return `🕯 ${t?t.name.replace("离世",""):"那个人"}的房间还留着，东西都没动。逢年过节，桌上还会多摆一副碗筷。`;}},
+ {id:"call_dead",when:p=>p.traumas.some(t=>t.name.includes("离世")),pp:()=>0.001,run(p){return "📞 他翻到那个再也打不通的电话号码，盯着看了很久，还是没拨出去。";}},
+ {id:"tradeoff",when:p=>ageYears(p)>=12,pp:()=>0.002,run(p){if(p.attrs.learning>60){p.attrs.social=clamp(p.attrs.social-3,0,100);return "📚 他今天选了学习，错过了和朋友打球——一天只有24小时，选了一个，就得放弃另一个。";}p.attrs.learning=clamp(p.attrs.learning-2,0,100);return "⚽ 他今天选了和朋友玩，作业没写完——一天只有24小时，选了一个，就得放弃另一个。";}},
+ {id:"misunderstand",when:p=>ageYears(p)>=8,pp:()=>0.002,run(p){return "😶 他把别人的一句话听错了，误会了好几天，后来才知道人家根本不是那个意思。";}},
+ {id:"subtext",when:p=>ageYears(p)>=15,pp:()=>0.0015,run(p){return "🗣 有人跟他说话，话里有话，他当时没听懂，半夜躺在床上才回过味来。";}},
+ {id:"trend",when:p=>ageYears(p)>=15&&ageYears(p)<35,pp:()=>0.0015,run(p){const t=pick(["买房","考研","考公","学编程","开奶茶店","考教师资格证"]);return `📈 身边的人都在${t}，他也动了心——大家都这样，好像不跟着做就落伍了。`;}},
+ {id:"butterfly",when:p=>ageYears(p)>=10,pp:()=>0.0008,run(p){p.flags.butterfly=(p.flags.butterfly||0)+1;return pick(["今天多睡了十分钟，错过了一班车。","今天换了一条路走，遇到了一个很久没见的人。","今天顺手帮了陌生人一个小忙。"]);}},
+ {id:"butterfly_reveal",when:p=>(p.flags.butterfly||0)>=2,pp:()=>0.002,run(p){p.flags.butterfly=0;return "🦋 很多年后他才明白，那天多睡的十分钟、错过的那班车，悄悄改变了他的一生——可当时谁也不知道。";}},
+ {id:"moral_gray",when:p=>ageYears(p)>=15,pp:()=>0.001,run(p){if(p.familyMoney<3000&&p.attrs.character>60){p.attrs.character=clamp(p.attrs.character-5,0,100);return "😔 家里实在没钱了，他偷偷拿了别人一点东西，事后一直后悔——好人也会因为穷而做错事。";}return "😔 他认识的一个平时挺坏的人，对家里人却特别好——人哪有那么简单的好坏。";}},
+ {id:"lonely",when:p=>ageYears(p)>=14,pp:()=>0.002,run(p){p.attrs.mood=clamp(p.attrs.mood-5,0,100);return "🌙 再热闹的家里，也有没人能懂的时刻。他一个人坐在窗边，觉得有点孤独。";}},
+ {id:"irrational_love",when:p=>ageYears(p)>=16&&ageYears(p)<30,pp:()=>0.001,run(p){return "💘 他爱上了一个根本不合适的人，所有人都说不行，可爱上一个人哪有什么道理。";}},
+ {id:"time_flies",when:p=>ageYears(p)>=30,pp:()=>0.001,run(p){return "⏳ 小时候一年很长，长大后一年眨眼就过——他忽然觉得，怎么一眨眼就到这个年纪了。";}},
+ {id:"no_reason",when:p=>true,pp:()=>0.0008,run(p){return pick(["为什么偏偏是他？没有原因，就是赶上了。","这事没什么道理，就是运气。","有时候就是这样，没个说法。"]);}},
+ {id:"dream",when:p=>true,pp:()=>0.008,run(p){const d=pick(["做美梦了，醒来还笑着。","做了个噩梦，半夜惊醒，一身冷汗。","梦到去世的亲人了，醒来枕头是湿的。","梦到自己在天上飞，醒来觉得特别轻。"]);if(d.includes("噩梦")||d.includes("去世"))p.attrs.mood=clamp(p.attrs.mood-4,0,100);else p.attrs.mood=clamp(p.attrs.mood+3,0,100);return `💤 ${d}`;}},
+ {id:"joke",when:p=>ageYears(p)>=8,pp:()=>0.003,run(p){return pick(["他讲了个冷笑话，把大家都逗乐了。","他自嘲了一句，气氛一下子轻松了。","他学老师说话，学得惟妙惟肖。"]);}},
+ {id:"bored",when:p=>ageYears(p)>=8,pp:()=>0.003,run(p){p.attrs.mood=clamp(p.attrs.mood-2,0,100);return pick(["无聊到发呆，数天花板上的裂纹。","无聊得数瓷砖，一块、两块……","闲得发慌，不知道干点什么好。"]);}},
+ {id:"habit",when:p=>ageYears(p)>=6,pp:()=>0.002,run(p){return pick(["每天早上同一家早餐店，同一杯豆浆，雷打不动。","他有个习惯：睡前一定要看会儿书，不然睡不着。","每天放学都要绕到小卖部看一眼，哪怕什么都不买。"]);}},
+ {id:"festival",when:p=>true,pp:()=>0.001,run(p){const wd=worldDate();const f={1:"快过年了",4:"清明要到了",6:"端午要到了",9:"中秋要到了"}[wd.mo];if(!f)return null;return `🏮 ${f}，他知道又一年过去了。`;}},
+ {id:"wait_bus",when:p=>ageYears(p)>=8,pp:()=>0.003,run(p){return pick(["等公交等了半天，车还没来。","排队排了很久，脚都站酸了。","等一个人的回电话，等了一下午。"]);}},
+ {id:"missed",when:p=>ageYears(p)>=14,pp:()=>0.001,run(p){return pick(["他和一个人差一点就遇见了，擦肩而过，谁也没发现。","那天他晚出门五分钟，错过了一个可能改变一生的见面。"]);}},
+ {id:"nickname",when:p=>p.school&&ageYears(p)>=8&&ageYears(p)<18&&!p.nickname,pp:()=>0.01,run(p){p.nickname=p.attrs.fitness>70?"飞毛腿":p.attrs.learning>75?"书呆子":p.traits.extro<25?"闷葫芦":p.traits.extro>75?"话痨":"小个子";return `🏷 同学们给他起了个外号：${p.nickname}。这个外号会跟他很多年。`;}},
+ {id:"keepsake",when:p=>ageYears(p)>=10,pp:()=>0.001,run(p){const k=p.keepsakes[0];if(!k)return null;k.years++;if(k.years>=8&&chance(.3)){p.keepsakes.shift();return `🧥 那件${k.name}终于穿破了，扔了的时候有点舍不得——旧东西是会承载记忆的。`;}return `🧥 那件${k.name}已经穿了${k.years}年，旧了，但他舍不得扔。`;}},
+];
+EVENTS.push(...DEPTH_EVENTS);
+/* ============ 深度事件（第二批） ============ */
+const DEPTH_EVENTS2=[
+ {id:"rel_wear",when:p=>true,pp:()=>0.002,run(p){const ids=Object.keys(p.rels).filter(id=>S.people[id]&&S.people[id].role==="friend");if(!ids.length)return null;const id=pick(ids);const r=p.rels[id];if(r.v>40){r.v=clamp(r.v-6,0,100);if(r.v<30)r.status="生疏";return `🍂 和${S.people[id].name}好久没联系了，再好的朋友，不维护也会淡。`;}return null;}},
+ {id:"marriage_wear",when:p=>!!p.spouse,pp:()=>0.001,run(p){const sp=S.people[p.spouse];if(!sp)return null;return `🏠 和${sp.name}结婚多年，激情早就退去了，剩下的更多是习惯和责任。`;}},
+ {id:"period",when:p=>p.sex==="女"&&ageYears(p)>=12&&ageYears(p)<50,pp:()=>0.02,run(p){p.attrs.mood=clamp(p.attrs.mood-4,0,100);p.attrs.health=clamp(p.attrs.health-1,0,100);return "🌸 生理期来了，肚子疼，什么都不想干。";}},
+ {id:"pet_adopt",when:p=>ageYears(p)>=8&&!p.pet,pp:()=>0.001,run(p){p.pet={kind:pick(["猫","狗"]),name:pick(["阿黄","团团","豆豆","小黑","花花","旺财"]),age:0};return `🐾 他养了一只${p.pet.kind}，取名叫${p.pet.name}，每天放学回家它都在门口等。`;}},
+ {id:"pet_old",when:p=>!!p.pet,pp:()=>0.001,run(p){p.pet.age+=1;if(p.pet.age>=12&&chance(.3)){const nm=p.pet.name;p.pet=null;addTrauma(p,"宠物去世",4);return `🐾 ${nm}老死了，埋在了后院那棵树下，他哭了很久。`;}return `🐾 ${p.pet.name}已经${p.pet.age}岁了，走路都慢了。`;}},
+ {id:"faith_pray",when:p=>p.faith!=="无"&&p.attrs.mood<45,pp:()=>0.004,run(p){p.attrs.mood=clamp(p.attrs.mood+6,0,100);return `🙏 心里难受，他去了庙里烧了柱香，求了个平安——${p.faith==="信佛"?"佛":p.faith==="信基督"?"主":p.faith==="信祖先"?"祖先":"老天"}保佑。`;}},
+ {id:"faith_limit",when:p=>p.faith!=="无"&&p.attrs.character<40,pp:()=>0.001,run(p){p.attrs.character=clamp(p.attrs.character+3,0,100);return `🙏 本来想做一件亏心事，想起${p.faith}，最后还是没做。`;}},
+ {id:"art_touch",when:p=>ageYears(p)>=10,pp:()=>0.0015,run(p){return pick(["听到一首歌，听到哭了。","看完一本书，半天缓不过来。","他忽然觉得，好看的东西真的能治愈人。"]);}},
+ {id:"power_favor",when:p=>ageYears(p)>=18,pp:()=>0.0012,run(p){if(p.money<2000)return null;p.money-=2000;return "🧧 为了办成一件事，他托了关系、送了礼——不送，事就办不成。";}},
+ {id:"power_unfair",when:p=>ageYears(p)>=15,pp:()=>0.001,run(p){p.attrs.mood=clamp(p.attrs.mood-6,0,100);return "😤 明明他更优秀，机会却给了有关系的人——不公平是真实存在的。";}},
+ {id:"tech_gap",when:p=>ageYears(p)>=55,pp:()=>0.002,run(p){return pick(["他学不会扫码支付，在收银台前急得满头大汗。","孙子教他用智能手机，教了三遍还是不会。","他觉得自己被时代抛下了。"]);}},
+ {id:"silence",when:p=>true,pp:()=>0.002,run(p){return pick(["父子俩坐在门口抽烟，谁也不说话，烟一根接一根。","葬礼上大家都不说话，只有风吹过灵堂的声音。","吵完架后的沉默，比吵架本身更难受。"]);}},
+ {id:"chaos_week",when:p=>true,major:true,pp:()=>0.0009,run(p){p.attrs.mood=clamp(p.attrs.mood-12,0,100);p.anxiety=clamp(p.anxiety+20,0,100);return "🌪 这一周全赶在一起了：孩子发烧、房贷到期、工作出问题、老人住院——生活就是一团乱麻一起来的。";}},
+ {id:"regret_old",when:p=>ageYears(p)>=55,pp:()=>0.002,run(p){const r=p.regrets.length?pick(p.regrets):"年轻时那个没选的路";return `😔 老了会想：如果当初选了另一条路会怎样？${r}，这辈子都在为它买单，或者庆幸。`;}},
+ {id:"big_choice",when:p=>ageYears(p)>=16&&ageYears(p)<45,pp:()=>0.0008,run(p){const c=pick(["辍学打工","早早结婚","出国","辞职创业"]);p.regrets.push("如果当初没"+c);return `🔀 他做了个回不了头的选择：${c}。没有存档读档，“如果当初”永远只是假设。`;}},
+ {id:"sense",when:p=>true,pp:()=>0.003,run(p){return pick(["早餐店的油条味飘出来，一个气味就把他带回了小时候。","夏天的汗味、医院的消毒水味、老房子的霉味——气味是记忆的锚。","雨后泥土的味道，让他想起小时候光脚跑过的那条路。"]);}},
+ {id:"borrow_money",when:p=>ageYears(p)>=18,pp:()=>0.001,run(p){const amt=rint(1000,10000);if(chance(.5)){p.money+=amt;return `💸 亲戚找他借了${fmtMoney(amt)}，借钱容易，还钱难，人情和面子全在里面。`;}p.money=Math.max(0,p.money-amt);return `💸 他找亲戚借了${fmtMoney(amt)}，开口之前犹豫了半天。`;}},
+ {id:"hongbao",when:p=>true,pp:()=>0.0015,run(p){if(chance(.5)){const a=rint(100,2000);p.money+=a;return `🧧 过年收了红包${fmtMoney(a)}。`;}const a=rint(200,3000);p.money=Math.max(0,p.money-a);return `🧧 随份子${fmtMoney(a)}，人情往来，躲不掉。`;}},
+ {id:"food",when:p=>true,pp:()=>0.003,run(p){return pick(["今天吃的是家乡菜，妈妈做的那个味道，走到哪都忘不了。","病了，妈妈熬了汤，喝下去浑身都暖了。","过年一家人包饺子，他负责擀皮。"]);}},
+ {id:"dialect",when:p=>ageYears(p)>=18,pp:()=>0.0015,run(p){return pick(["离家多年，他的乡音慢慢变淡了，可一着急，方言就冒出来了。","他说了一句家乡话，对方愣了一下——方言是身份的一部分。"]);}},
+ {id:"phone",when:p=>ageYears(p)>=12,pp:()=>0.004,run(p){p.phoneUse=clamp(p.phoneUse+5,0,100);if(p.phoneUse>70){p.attrs.energy=clamp(p.attrs.energy-4,0,100);return "📱 刷视频刷到半夜，越刷越精神，明天又要顶着黑眼圈。";}return pick(["📱 躺在床上刷视频，根本停不下来。","📱 点了外卖，半小时就送到了。","📱 被拉进一个群，一天几百条消息。"]);}},
+ {id:"festival_home",when:p=>ageYears(p)>=16,pp:()=>0.002,run(p){const wd=worldDate();if(wd.mo===1||wd.mo===2)return "🧧 快过年了，他抢票回家，年夜饭桌上给长辈拜年。";if(wd.mo===4)return "🕯 清明，他去给去世的亲人扫墓，摆上水果，烧了纸。";if(wd.mo===9)return "🥮 中秋，一家人吃月饼，月亮很圆。";return null;}},
+ {id:"neighbor_favor",when:p=>ageYears(p)>=18,pp:()=>0.0015,run(p){return pick(["邻居家办喜事，他随了份子，还去帮忙抬桌子。","隔壁阿姨让他帮忙看会儿孩子，他答应了。","楼下大爷找他借梯子，他二话没说就搬去了。"]);}},
+ {id:"midlife",when:p=>ageYears(p)>=38&&ageYears(p)<55,pp:()=>0.0015,run(p){p.attrs.mood=clamp(p.attrs.mood-6,0,100);return "🤔 人到中年，他开始怀疑：我这辈子活得对不对？学生、儿子、丈夫、父亲、工人——哪个才是真正的我？";}},
+ {id:"death_view",when:p=>ageYears(p)>=50,pp:()=>0.0015,run(p){return pick(["年轻时不怕死，老了开始怕死。","他觉得死了就什么都没了，所以更要好好活着。","他信来世，觉得人死了不是终点。"]);}},
+ {id:"superstition",when:p=>true,pp:()=>0.0015,run(p){return pick(["倒霉久了，他觉得该转运了。","他去算了命，还看了风水。","他觉得好运和坏运是平衡的，坏到头就该好了。"]);}},
+ {id:"elder_care",when:p=>ageYears(p)>=60,pp:()=>0.002,run(p){return pick(["老了，生活不能自理，要靠子女照顾，请了保姆。","子女们为谁来照顾他吵了一架，互相推诿。","他不想去养老院，觉得那是被抛弃的地方。"]);}},
+ {id:"inheritance",when:p=>p.traumas.some(t=>t.name.includes("离世")),pp:()=>0.001,run(p){return pick(["办后事、立遗嘱、分遗产，家人为房子和存款吵了起来。","他留下了一套房、一点存款和没还完的债，还有几个没完成的心愿。"]);}},
+ {id:"downfall",when:p=>ageYears(p)>=30&&p.job,pp:()=>0.0008,run(p){p.job=null;p.salary=0;p.familyMoney=Math.round(p.familyMoney*0.5);return "📉 中产也会返贫：公司倒了，他失业了，房子差点断供，地位是会掉下去的。";}},
+ {id:"no_karma",when:p=>true,pp:()=>0.001,run(p){return pick(["好人没好报，坏人得逞——这种事真实发生着。","一个陌生人一次善意，改变了他很多。","一次欺骗，毁掉了他对一个人的全部信任。"]);}},
+ {id:"slang",when:p=>ageYears(p)>=10,pp:()=>0.0015,run(p){return pick(["新词、流行语、网络梗不断出现，上一代人听不懂他在说什么。","他说了一个新词，爸妈愣住了。"]);}},
+ {id:"prejudice",when:p=>true,pp:()=>0.0009,run(p){p.attrs.mood=clamp(p.attrs.mood-5,0,100);return pick(["因为口音、因为出身、因为长相，他被人另眼看过。","歧视是真实存在的，会影响一个人的机会。"]);}},
+ {id:"forget_disaster",when:p=>S.world.eraLeft<3,pp:()=>0.001,run(p){return "🌱 灾难过去很久了，人们慢慢忘了，继续过日子——但伤疤还在，遗忘本身也是真实的。";}},
+ {id:"echo_chamber",when:p=>ageYears(p)>=14,pp:()=>0.0015,run(p){return pick(["他只相信自己愿意相信的，手机推荐的全是他爱看的。","偏见就这样一代代传下去。"]);}},
+ {id:"family_pattern",when:p=>!!p.spouse&&p.children.length>0,pp:()=>0.0015,run(p){return `👨‍👩‍👧 他发现自己教育孩子的方式，跟${p.familyPattern==="打骂教育"?"他爸当年打他":"他爸妈当年"}一模一样——家族模式会复制，直到有人打破它。`;}},
+ {id:"aging_shadow",when:p=>ageYears(p)>=65,pp:()=>0.002,run(p){return pick(["他开始交代后事，想见想见的人，后悔年轻时没做的事。","死亡不是突然降临的数字，是慢慢靠近的阴影。","他写了遗嘱，把房子和存款都安排好了。"]);}},
+ {id:"sound",when:p=>true,pp:()=>0.003,run(p){return pick(["早餐店的油锅滋滋响，学校铃声远远传来。","雨声、蝉鸣、深夜的狗叫、楼下的麻将声——世界是有声音的。"]);}},
+ {id:"waiting",when:p=>ageYears(p)>=8,pp:()=>0.002,run(p){return pick(["等公交、等排队、等消息、等一个人回电话——等待时的焦虑和无聊是真实的。"]);}},
+];
+EVENTS.push(...DEPTH_EVENTS2);
+/* ============ 弹窗 / 快进测试 ============ */
+function showModal(title,text,btns){
+  const m=$("#modal");
+  m.innerHTML=`<h2>${title}</h2><p>${String(text).replace(/\n/g,"<br>")}</p><div class="btns"></div>`;
+  const box=m.querySelector(".btns");
+  (btns||[{t:"知道了",fn:()=>{}}]).forEach(b=>{
+    const btn=document.createElement("button");btn.textContent=b.t;
+    btn.onclick=()=>{$("#modalWrap").classList.remove("on");if(b.fn)b.fn();};
+    box.appendChild(btn);
+  });
+  $("#modalWrap").classList.add("on");
+}
+function advanceYears(n,doneCb){
+  if(!S||S.fastForwarding)return;
+  S.fastForwarding=true; const target=dayCount()+Math.round(n*365);
+  let guard=0;
+  const step=()=>{
+    const end=Math.min(target,dayCount()+10);
+    while(dayCount()<end){S.minutes+=1440;processDay();if(++guard>40000)break;}
+    renderAll();
+    if(dayCount()<target&&guard<=40000){setTimeout(step,0);}
+    else{S.fastForwarding=false;save();renderAll();if(doneCb)doneCb();}
+  };
+  step();
+}
+/* ============ 渲染：场景 / 状态 / 时钟 / 今日 ============ */
+const OUTFIT_COLOR={pajamas:"#b8c7d9",prison:"#c9c9c9",army:"#4a5d3a",uniform:"#2b4a6f",work:"#3a3a3a",sport:"#c8402a",casual:"#5b8dc9"};
+const AVATAR_BY_STAGE={婴儿:"👶",幼儿:"🧒",儿童:"🧒",少年:"👦",青年:"👨",成年:"👨",中年:"🧑",老年:"👴"};
+function skyColor(h){
+  if(h<5||h>=21)return "#232c4a";
+  if(h<7)return "#7a6a9a";
+  if(h<9)return "#f2c98a";
+  if(h<17)return "#a8d0ea";
+  if(h<19)return "#e8915a";
+  return "#5a4a7a";
+}
+function sceneProps(loc){
+  const P={
+    bedroom:`<rect x="60" y="220" width="180" height="70" rx="8" fill="#8a6a4a"/><rect x="70" y="205" width="70" height="22" rx="8" fill="#fff"/><rect x="560" y="120" width="90" height="110" rx="6" fill="#cfe3f2" stroke="#8aa"/><line x1="605" y1="120" x2="605" y2="230" stroke="#8aa"/>`,
+    living:`<rect x="90" y="230" width="220" height="60" rx="10" fill="#7a4a3a"/><rect x="470" y="180" width="140" height="90" rx="6" fill="#2b2b2b"/><rect x="480" y="190" width="120" height="70" fill="#9fd0e8"/><rect x="330" y="260" width="120" height="14" rx="6" fill="#8a6a4a"/>`,
+    kitchen:`<rect x="80" y="230" width="200" height="60" rx="8" fill="#a89878"/><circle cx="150" cy="215" r="28" fill="#888"/><circle cx="230" cy="215" r="28" fill="#777"/><rect x="480" y="200" width="120" height="90" rx="8" fill="#fff" stroke="#ccc"/>`,
+    study:`<rect x="80" y="240" width="220" height="18" fill="#8a6a4a"/><rect x="90" y="258" width="12" height="40" fill="#6a4a2a"/><rect x="280" y="258" width="12" height="40" fill="#6a4a2a"/><rect x="520" y="120" width="120" height="170" fill="#7a5a3a"/><rect x="530" y="135" width="100" height="14" fill="#c8402a"/><rect x="530" y="165" width="100" height="14" fill="#2b4a6f"/><rect x="530" y="195" width="100" height="14" fill="#3d7a4a"/>`,
+    kindergarten:`<circle cx="120" cy="150" r="26" fill="#ffd94d"/><circle cx="220" cy="120" r="26" fill="#ff9a9a"/><circle cx="320" cy="150" r="26" fill="#9fd0e8"/><rect x="60" y="230" width="300" height="14" fill="#8a6a4a"/>`,
+    school:`<rect x="180" y="90" width="440" height="110" rx="6" fill="#2e4a3a"/><text x="400" y="150" font-size="28" fill="#fff" text-anchor="middle">好好学习 天天向上</text><rect x="120" y="240" width="90" height="12" fill="#8a6a4a"/><rect x="350" y="240" width="90" height="12" fill="#8a6a4a"/><rect x="580" y="240" width="90" height="12" fill="#8a6a4a"/>`,
+    university:`<rect x="180" y="90" width="440" height="110" rx="6" fill="#2e4a3a"/><text x="400" y="150" font-size="26" fill="#fff" text-anchor="middle">博学 笃行</text><rect x="100" y="240" width="600" height="12" fill="#8a6a4a"/>`,
+    street:`<rect x="0" y="300" width="800" height="80" fill="#5a5a5a"/><rect x="0" y="336" width="800" height="6" fill="#ffd94d" stroke-dasharray="20 14"/><rect x="60" y="140" width="110" height="160" fill="#9a8a7a"/><rect x="200" y="110" width="130" height="190" fill="#7a8a9a"/><rect x="620" y="150" width="110" height="150" fill="#8a7a6a"/>`,
+    park:`<circle cx="140" cy="180" r="55" fill="#3d7a4a"/><rect x="132" y="220" width="16" height="70" fill="#6a4a2a"/><circle cx="660" cy="170" r="60" fill="#4a8a3d"/><rect x="652" y="220" width="16" height="70" fill="#6a4a2a"/><rect x="330" y="250" width="140" height="16" rx="6" fill="#8a6a4a"/><ellipse cx="400" cy="330" rx="150" ry="22" fill="#7ab8d8"/>`,
+    shop:`<rect x="80" y="200" width="240" height="90" rx="8" fill="#a89878"/><rect x="100" y="150" width="60" height="50" fill="#e8b04a"/><rect x="180" y="150" width="60" height="50" fill="#c8402a"/><rect x="260" y="150" width="60" height="50" fill="#3d7a4a"/><rect x="480" y="120" width="180" height="170" fill="#c9b896"/><rect x="500" y="140" width="140" height="16" fill="#8a6a4a"/><rect x="500" y="180" width="140" height="16" fill="#8a6a4a"/>`,
+    netcafe:`<rect x="80" y="220" width="640" height="14" fill="#3a3a3a"/><rect x="120" y="170" width="70" height="50" fill="#223"/><rect x="130" y="180" width="50" height="30" fill="#4a8fd8"/><rect x="300" y="170" width="70" height="50" fill="#223"/><rect x="310" y="180" width="50" height="30" fill="#c8402a"/><rect x="480" y="170" width="70" height="50" fill="#223"/><rect x="490" y="180" width="50" height="30" fill="#3d7a4a"/>`,
+    court:`<rect x="60" y="280" width="680" height="20" fill="#c98a4a"/><circle cx="400" cy="290" r="26" fill="#fff" stroke="#c8402a" stroke-width="3"/><rect x="680" y="150" width="10" height="140" fill="#888"/><circle cx="685" cy="150" r="22" fill="none" stroke="#c8402a" stroke-width="4"/>`,
+    library:`<rect x="80" y="110" width="140" height="180" fill="#7a5a3a"/><rect x="90" y="130" width="120" height="12" fill="#c8402a"/><rect x="90" y="160" width="120" height="12" fill="#2b4a6f"/><rect x="580" y="110" width="140" height="180" fill="#7a5a3a"/><rect x="590" y="130" width="120" height="12" fill="#3d7a4a"/><rect x="590" y="160" width="120" height="12" fill="#e8b04a"/><rect x="300" y="240" width="200" height="14" fill="#8a6a4a"/>`,
+    hospital:`<rect x="80" y="230" width="200" height="60" rx="8" fill="#fff" stroke="#ccc"/><rect x="90" y="215" width="60" height="18" rx="8" fill="#fff" stroke="#ccc"/><rect x="520" y="110" width="110" height="110" rx="10" fill="#fff" stroke="#c8402a" stroke-width="3"/><rect x="565" y="130" width="20" height="70" fill="#c8402a"/><rect x="540" y="155" width="70" height="20" fill="#c8402a"/>`,
+    company:`<rect x="80" y="230" width="200" height="14" fill="#3a3a3a"/><rect x="120" y="180" width="60" height="50" fill="#223"/><rect x="500" y="230" width="200" height="14" fill="#3a3a3a"/><rect x="540" y="180" width="60" height="50" fill="#223"/><rect x="300" y="120" width="200" height="60" rx="6" fill="#eef4fb" stroke="#cfdfef"/><text x="400" y="158" font-size="18" fill="#1e3a5f" text-anchor="middle">努力工作</text>`,
+    army:`<rect x="380" y="80" width="6" height="200" fill="#888"/><polygon points="386,80 470,100 386,122" fill="#c8402a"/><rect x="90" y="200" width="180" height="90" fill="#5a6a4a"/><rect x="530" y="200" width="180" height="90" fill="#5a6a4a"/>`,
+    prison:`<rect x="80" y="110" width="640" height="180" fill="#b8b8b8"/><rect x="120" y="110" width="14" height="180" fill="#555"/><rect x="220" y="110" width="14" height="180" fill="#555"/><rect x="320" y="110" width="14" height="180" fill="#555"/><rect x="420" y="110" width="14" height="180" fill="#555"/><rect x="520" y="110" width="14" height="180" fill="#555"/><rect x="620" y="110" width="14" height="180" fill="#555"/>`,
+    station:`<rect x="0" y="290" width="800" height="24" fill="#8a8a8a"/><rect x="100" y="190" width="600" height="100" rx="14" fill="#2b4a6f"/><rect x="130" y="210" width="60" height="50" fill="#cfe3f2"/><rect x="220" y="210" width="60" height="50" fill="#cfe3f2"/><rect x="310" y="210" width="60" height="50" fill="#cfe3f2"/><text x="400" y="160" font-size="22" fill="#1e3a5f" text-anchor="middle">火车站</text>`,
+  };
+  return P[loc]||P.living;
+}
+function renderScene(){
+  const p=focus(); if(!p)return;
+  const wd=worldDate(), h=wd.h, w=S.world;
+  const sky=skyColor(h), night=(h<6||h>=20);
+  const sunX=60+((h-6)/12)*680, sunY=h<12?90+(h-6)*6:90+(18-h)*6;
+  const moonX=60+((h>=20?h-20:h+4)/8)*680;
+  const ground=p.loc==="park"?"#7ab86a":(p.loc==="street"||p.loc==="station")?"#9a9a92":"#d8c9a8";
+  const sc=stageScale(ageYears(p));
+  const oc=OUTFIT_COLOR[p.outfit]||OUTFIT_COLOR.casual;
+  const hair=p.age>60||ageYears(p)>60?"#ddd":"#2b2620";
+  const sleeping=p.act==="睡觉";
+  const fig=sleeping
+    ?`<g transform="translate(400,315) scale(${sc})"><ellipse cx="0" cy="0" rx="46" ry="12" fill="${oc}"/><circle cx="-52" cy="-8" r="15" fill="#f2c9a0"/><text x="-70" y="-30" font-size="18" fill="#fff">Z z</text></g>`
+    :`<g transform="translate(400,${p.act==="打球"?278:290}) scale(${sc})"><circle cx="0" cy="-52" r="17" fill="#f2c9a0"/><path d="M-17,-56 a17,17 0 0 1 34,0 l0,-6 l-34,0 z" fill="${hair}"/><rect x="-15" y="-34" width="30" height="44" rx="8" fill="${oc}"/><rect x="-14" y="10" width="11" height="26" rx="4" fill="#3a3a3a"/><rect x="4" y="10" width="11" height="26" rx="4" fill="#3a3a3a"/>${p.act==="打球"?`<circle cx="34" cy="-58" r="12" fill="#e8913a"/>`:""}${p.act==="上课"||p.act==="写作业"?`<rect x="-30" y="-6" width="60" height="8" rx="3" fill="#8a6a4a"/>`:""}</g>`;
+  // 附近的 NPC（镜头只跟主人公，他们只是背景里的人）
+  const nearby=Object.values(S.people).filter(q=>q.alive&&q.id!==p.id&&q.loc===p.loc).slice(0,3);
+  const npcFigs=nearby.map((q,i)=>{
+    const x=140+i*180, s2=stageScale(ageYears(q));
+    return `<g transform="translate(${x},292) scale(${s2})" opacity="0.92"><rect x="-34" y="-88" width="68" height="16" rx="8" fill="rgba(0,0,0,0.55)"/><text x="0" y="-76" font-size="11" fill="#fff" text-anchor="middle">${q.name}</text><circle cx="0" cy="-52" r="15" fill="#e8b890"/><rect x="-13" y="-36" width="26" height="40" rx="7" fill="#8a9a6a"/></g>`;
+  }).join("");
+  const weatherSvg=w.weather==="雨"?`<g stroke="#9fc4e8" stroke-width="2" opacity="0.7">${[80,200,320,440,560,680].map(x=>`<line x1="${x}" y1="40" x2="${x-14}" y2="110"/>`).join("")}</g>`:w.weather==="雪"?`<g fill="#fff">${[90,230,370,510,650,730].map(x=>`<circle cx="${x}" cy="${60+(x%90)}" r="4"/>`).join("")}</g>`:`<g fill="#fff" opacity="0.85"><ellipse cx="180" cy="70" rx="60" ry="18"/><ellipse cx="560" cy="50" rx="70" ry="20"/></g>`;
+  const sunMoon=night?`<circle cx="${moonX}" cy="80" r="26" fill="#f2ead0"/><circle cx="${moonX-10}" cy="74" r="5" fill="#d8c9a0"/><circle cx="${moonX+8}" cy="88" r="4" fill="#d8c9a0"/>`:`<circle cx="${Math.max(60,Math.min(740,sunX))}" cy="${sunY}" r="30" fill="#ffd94d"/>`;
+  $("#sceneHost").innerHTML=`<svg id="scene" viewBox="0 0 800 380" preserveAspectRatio="xMidYMid slice">
+    <rect width="800" height="300" fill="${sky}"/>${sunMoon}${weatherSvg}
+    <rect y="300" width="800" height="80" fill="${ground}"/>
+    ${sceneProps(p.loc)}${npcFigs}${fig}
+    ${night?`<rect width="800" height="380" fill="#0a1030" opacity="0.28"/>`:""}
+  </svg>`;
+  const sound=ambientSound(p.loc,h,w.weather);
+  const locName=(p.loc==="prison"&&ageYears(p)<18)?"少年管教所":(LOCS[p.loc]?LOCS[p.loc].name:p.loc);
+  $("#actbar").innerHTML=`<b>${p.name}</b> 正在${p.act||"发呆"} · ${locName} · ${sound?sound+" ":""}${w.weather==="雨"?"外面下着雨。":w.weather==="雪"?"外面下着雪。":""}`;
+  $("#locTag").textContent=locName+" · "+(countryById(p.country)?countryById(p.country).name:"")+" "+p.city;
+}
+function barRow(label,val,unit){
+  const cls=val<30?"low":val<60?"mid":"";
+  return `<div class="bar"><div class="bl"><span>${label}</span><span>${Math.round(val)}${unit||""}</span></div><div class="tr"><div class="fl ${cls}" style="width:${clamp(val,0,100)}%"></div></div></div>`;
+}
+function renderStatus(){
+  const p=focus(); if(!p)return;
+  const age=ageYears(p), st=stageOf(age);
+  $("#avatar").textContent=p.sex==="女"?(st==="老年"?"👵":st==="婴儿"?"👶":"👩"):(AVATAR_BY_STAGE[st]||"🧑");
+  $("#whoName").textContent=p.name+(p.nickname?`（${p.nickname}）`:"");
+  const c=countryById(p.country);
+  $("#whoMeta").innerHTML=`${ageStr(p)} · ${st} · ${c?c.name:""} ${p.city}（${(cityOf(p)||{}).size||""}）<br>${p.edu||"无"} · ${p.job||"无业"} · ${p.spouse?"已婚":"未婚"} · 孩子${p.children.length}个`;
+  const A=p.attrs;
+  $("#bars").innerHTML=barRow("健康",A.health)+barRow("心情",A.mood)+barRow("精力",A.energy)+barRow("饱腹",A.hunger)+barRow("学习",A.learning)+barRow("体能",A.fitness)+barRow("社交",A.social)+barRow("品行",A.character);
+  const kv=[
+    ["个人存款",fmtMoney(p.money)],["家庭存款",fmtMoney(p.familyMoney)],
+    ["月薪",p.salary?fmtMoney(p.salary):"—"],["房贷",p.mortgage?fmtMoney(p.mortgage):"无"],
+    ["负债",p.debt?fmtMoney(p.debt):"无"],["名声",Math.round(p.rep||50)+" / 100"],
+    ["运气",Math.round(p.luck||50)+" / 100"],["信仰",p.faith||"无"],
+    ["现在想要",p.desire||"—"],["体征",`${p.marks?p.marks.hand:""} · ${p.marks?p.marks.gait:""}`],
+    ["口头禅",p.marks?p.marks.catch:"—"],["宠物",p.pet?`${p.pet.kind} ${p.pet.name}（${p.pet.age}岁）`:"无"],
+    ["技能",`学习${Math.round(p.skills.study)} 运动${Math.round(p.skills.sports)} 艺术${Math.round(p.skills.art)} 社交${Math.round(p.skills.social)} 商业${Math.round(p.skills.business)}`],
+    ["性格",`外向${Math.round(p.traits.extro)} 勤奋${Math.round(p.traits.diligent)} 冒险${Math.round(p.traits.risk)} 善良${Math.round(p.traits.kind)} 好奇${Math.round(p.traits.curious)}`],
+    ["伤疤",p.scars&&p.scars.length?p.scars.join("、"):"无"],
+    ["旧物",p.keepsakes&&p.keepsakes.length?p.keepsakes.map(k=>`${k.name}（${k.years}年）`).join("、"):"无"],
+    ["创伤",p.traumas&&p.traumas.length?p.traumas.map(t=>t.name).join("、"):"无"],
+  ];
+  $("#kvBox").innerHTML=kv.map(([k,v])=>`<div class="kv"><span>${k}</span><span>${v}</span></div>`).join("");
+}
+function renderClock(){
+  const wd=worldDate(), w=S.world;
+  $("#clockDate").textContent=wd.ds;
+  $("#clockSeason").textContent=w.season+"季 · "+w.era.name;
+  $("#clockTime").textContent=wd.hm;
+  $("#clockWeather").textContent=w.weather+" "+Math.round(w.temp)+"°C";
+  const p=focus();
+  $("#clockPlace").textContent=p?`${p.city} · ${LOCS[p.loc]?LOCS[p.loc].name:p.loc}`:"—";
+}
+function renderToday(){
+  const p=focus(); if(!p)return;
+  const wd=worldDate();
+  const slots=[6,8,10,12,14,16,18,21].map(h=>{
+    const s=scheduleFor(p,h);
+    return `<div class="slot ${h===wd.h||(h<wd.h&&wd.h<h+2)?"cur":""}"><div class="t">${String(h).padStart(2,"0")}:00</div><b>${s.act}</b>${LOCS[s.loc]?LOCS[s.loc].name:s.loc}</div>`;
+  }).join("");
+  $("#todayStrip").innerHTML=slots;
+}
+/* ============ 渲染：地图 / 面板 ============ */
+function fmtPopWan(n){return n>=10000?(n/10000).toFixed(1)+"亿人":n>=100?n+"万人":(n*10000).toLocaleString()+"人";}
+function renderMap(){
+  const p=focus(); if(!p)return;
+  const cols=["#dbe9f6","#e8f0e0","#f6e8d8","#efe4f2","#e0f0ee","#f2ead8"];
+  const blocks=COUNTRIES.map((c,i)=>{
+    const x=(i%4)*200, y=Math.floor(i/4)*92;
+    const here=c.id===p.country;
+    return `<g><rect x="${x+4}" y="${y+4}" width="192" height="84" rx="10" fill="${here?"#1e3a5f":cols[i%6]}" stroke="${here?"#c8402a":"#d8d0bd"}" stroke-width="${here?3:1}"/>
+    <text x="${x+14}" y="${y+28}" font-size="14" font-weight="700" fill="${here?"#fff":"#2b2620"}">${c.name}${here?" 📍":""}</text>
+    <text x="${x+14}" y="${y+50}" font-size="12" fill="${here?"#cfe0f2":"#5e554a"}">人口 ${c.pop}亿 · 经济${c.econ}</text>
+    <text x="${x+14}" y="${y+70}" font-size="11" fill="${here?"#cfe0f2":"#8a8172"}">${c.cities.map(ci=>ci.name).join(" · ")}</text></g>`;
+  }).join("");
+  $("#mapHost").innerHTML=`<svg id="worldmap" viewBox="0 0 800 280"><text x="8" y="18" font-size="12" fill="#8a8172">世界总人口 80亿 · 12个国家 · 仅列主要城市</text>${blocks}</svg>`;
+  const cur=countryById(p.country), ci=cityOf(p);
+  const cityLines=cur.cities.map(c2=>{
+    const crowd=c2.pop>=500?"人山人海，上下班挤地铁，学校多、机会多":c2.pop>=100?"热闹的城市":c2.pop>=20?"安静的小城，人少":c2.pop>=2?"安静的镇子，街上没几个人":"小村子，几千人，互相都认识";
+    return `<div>${c2.name===p.city?"📍 ":""}<b>${c2.name}</b>（${c2.size}，${fmtPopWan(c2.pop)}）${c2.airport?" ✈️机场":""}${c2.metro?" 🚇地铁":""}${c2.train?" 🚆火车站":""} — ${crowd}</div>`;
+  }).join("");
+  $("#mapList").innerHTML=`<div><b>${cur.name}</b>：人口 ${cur.pop}亿 · ${cur.climate} · ${cur.culture}</div>${cityLines}`;
+  const tb=$("#travelBox");
+  if(p.travel){tb.textContent=`🚗 他在路上：去${p.travel.to}（${p.travel.reason}），还要 ${p.travel.daysLeft} 天。`;}
+  else if(ci){tb.innerHTML=`他现在在 <b>${cur.name} · ${p.city}</b>（${ci.size}，人口${fmtPopWan(ci.pop)}）。${ci.pop>=500?"这里住着几百万人，街上永远人来人往。":ci.pop>=20?"这里安静，人不多。":"这里只有几千人，抬头不见低头见。"}想去别的城市要花时间、花钱，钱不够就去不了。`;}
+}
+function relLabel(p,q){
+  if(p.parents&&p.parents.includes(q.id))return "父母";
+  if(p.spouse===q.id)return "配偶";
+  if(p.children.includes(q.id))return "孩子";
+  if(p.siblings.includes(q.id))return "兄弟姐妹";
+  if(q.role==="teacher")return "老师";
+  if(q.role==="classmate"||q.role==="friend")return q.role==="classmate"?"同学":"朋友";
+  if(q.role==="colleague")return "同事";
+  if(q.role)return {shopowner:"早餐店老板",shopwife:"早餐店老板娘",vendor:"摊主",vendorF:"摊主",guard:"学校保安",driver:"公交司机",landlord:"房东",neighbor:"邻居",mom:"邻居妈妈",dad:"邻居爸爸",husband:"邻居",wife:"邻居"}[q.role]||"邻居";
+  return "熟人";
+}
+function renderPanels(){
+  const p=focus(); if(!p)return;
+  // 关系
+  const rels=Object.values(S.people).filter(q=>q.alive&&q.id!==p.id&&(p.rels[q.id]||q.role||p.parents?.includes(q.id)||p.spouse===q.id||p.children.includes(q.id)||p.siblings?.includes(q.id))).slice(0,30);
+  $("#panel-rel").innerHTML=rels.length?rels.map(q=>{
+    const r=p.rels[q.id]; const v=r?Math.round(r.v):50;
+    return `<div class="npc"><div class="rel"><b>${q.name}</b> <span>· ${relLabel(p,q)} · ${ageStr(q)} · ${q.job||"无业"}${q.quirk?" · "+q.quirk:""}${q.routine?" · "+q.routine:""}</span><br><span>${q.backstory||""}${r&&r.status&&r.status!=="正常"?" · "+r.status:""}</span></div><div class="relbar"><i style="width:${v}%"></i></div></div>`;
+  }).join(""):"<div class='note'>还没认识什么人。</div>";
+  // 家族树
+  const gens={};
+  for(const q of Object.values(S.people)){const g=q.gen??0;(gens[g]=gens[g]||[]).push(q);}
+  const gkeys=Object.keys(gens).map(Number).sort((a,b)=>a-b);
+  $("#panel-fam").innerHTML=gkeys.map(g=>{
+    const label=g<0?`第${-g}代长辈`:g===0?"这一代":`第${g+1}代`;
+    return `<div class="tree-gen"><div class="g">${label}</div><div class="tree-row">${gens[g].map(q=>`<div class="chip ${q.id===p.id?"me":""}" data-pid="${q.id}"><b>${q.name}</b>${q.id===p.id?"（我）":""}<br><span class="${q.alive?"":"dead"}">${ageStr(q)}${q.alive?"":(q.moved?" · 搬走了":" · 已去世")} · ${q.job||"无业"}</span><br>${q.children.length?`孩子${q.children.length}个`:""}</div>`).join("")}</div></div>`;
+  }).join("")||"<div class='note'>家族树还没有长出来。</div>";
+  // 人生轨迹
+  $("#panel-life").innerHTML=S.timeline.length?S.timeline.map(t=>`<div><span class="d">${t.d}</span>${t.text}</div>`).join(""):"<div class='note'>还没有大事发生。</div>";
+  // 事件日志
+  $("#panel-log").innerHTML=S.log.length?S.log.map(e=>`<div class="${e.major?"maj":""}"><span class="d">${e.d}</span>${e.text}</div>`).join(""):"<div class='note'>还没有事件。</div>";
+}
+function renderAll(){if(!S)return;renderClock();renderScene();renderStatus();renderToday();renderMap();renderPanels();}
+/* ============ 主循环 ============ */
+let lastTs=Date.now();
+function hourlyStep(h){
+  const p=focus(); if(!p)return;
+  const slot=scheduleFor(p,h);
+  p.loc=slot.loc; p.act=slot.act; p.outfit=outfitFor(p,slot);
+  const A=p.attrs;
+  if(slot.act==="睡觉"){A.energy=clamp(A.energy+12,0,100);A.hunger=clamp(A.hunger-1,0,100);}
+  else{A.energy=clamp(A.energy-2,0,100);A.hunger=clamp(A.hunger-3,0,100);}
+  if(slot.act&&slot.act.includes("吃")){A.hunger=clamp(A.hunger+35,0,100);A.mood=clamp(A.mood+2,0,100);}
+  if(A.hunger<20)A.mood=clamp(A.mood-1,0,100);
+}
+function tick(){
+  if(!S)return;
+  const now=Date.now(); const dt=Math.min(5,(now-lastTs)/1000); lastTs=now;
+  if(S.speed>0&&!S.fastForwarding){
+    const add=S.speed*dt/60; // speed = 游戏分钟/现实分钟：12=现实5分钟走1游戏小时
+    const target=S.minutes+add;
+    const prevHour=Math.floor(S.minutes/60), newHour=Math.floor(target/60);
+    S.minutes=target;
+    for(let hh=prevHour+1;hh<=newHour;hh++)hourlyStep(hh%24);
+    // 跨天：逐天处理（防止一下子跳过太多天）
+    let crossed=dayCount()-lastDay;
+    if(crossed>30){lastDay=dayCount();} // 极端节流保护：跳过补算
+    else while(lastDay<dayCount()){
+      lastDay++;
+      S.minutes=Math.min(target,lastDay*1440-1);
+      processDay();
+    }
+    S.minutes=target;
+    renderAll();
+  }
+}
+/* ============ 接线与启动 ============ */
+function wire(){
+  document.querySelectorAll(".speeds button[data-sp]").forEach(b=>{
+    b.onclick=()=>{
+      S.speed=+b.dataset.sp;
+      if(S.speed>0&&S.pausedByEvent){S.pausedByEvent=false;$("#modalWrap").classList.remove("on");}
+      document.querySelectorAll(".speeds button[data-sp]").forEach(x=>x.classList.toggle("on",x===b));
+      save();
+    };
+  });
+  document.querySelectorAll(".tabs button[data-tab]").forEach(b=>{
+    b.onclick=()=>{
+      document.querySelectorAll(".tabs button[data-tab]").forEach(x=>x.classList.toggle("on",x===b));
+      document.querySelectorAll(".panel").forEach(pn=>pn.classList.remove("on"));
+      $("#panel-"+b.dataset.tab).classList.add("on");
+    };
+  });
+  document.querySelectorAll("#intervBox button[data-iv]").forEach(b=>{
+    b.onclick=()=>{
+      const p=focus(); if(!p)return;
+      const day=dayCount();
+      if(ivCooldown[b.dataset.iv]===day)return;
+      ivCooldown[b.dataset.iv]=day;
+      if(b.dataset.iv==="food"){p.attrs.hunger=clamp(p.attrs.hunger+30,0,100);p.attrs.mood=clamp(p.attrs.mood+5,0,100);logEvt("🍗 妈妈多做了个鸡腿，他吃得特别香。");}
+      if(b.dataset.iv==="study"){p.attrs.learning=clamp(p.attrs.learning+2,0,100);p.skills.study=clamp(p.skills.study+1,0,100);logEvt("📖 妈妈陪他读了会儿书，讲了两道题。");}
+      if(b.dataset.iv==="sport"){p.attrs.fitness=clamp(p.attrs.fitness+2,0,100);p.attrs.energy=clamp(p.attrs.energy-5,0,100);p.attrs.mood=clamp(p.attrs.mood+4,0,100);logEvt("⚽ 爸爸叫他去楼下打球，跑了一身汗。");}
+      if(b.dataset.iv==="money"){p.money+=200;p.attrs.mood=clamp(p.attrs.mood+3,0,100);logEvt("💰 奶奶偷偷塞给他200块零花钱，让他别告诉爸妈。");}
+      renderAll();
+    };
+  });
+  // 测试快进（观察者工具，不进他的世界）
+  const iv=$("#intervBox");
+  const b1=document.createElement("button");b1.textContent="⏩ 快进1年";b1.onclick=()=>advanceYears(1);
+  const b10=document.createElement("button");b10.textContent="⏩ 快进10年";b10.onclick=()=>advanceYears(10);
+  iv.appendChild(b1);iv.appendChild(b10);
+  $("#btnSave").onclick=()=>{save();$("#saveNote").textContent="已保存："+worldDate().ds+" "+worldDate().hm;};
+  $("#btnReset").onclick=()=>{
+    showModal("换个世界？","现在的世界会被丢掉，一个全新的婴儿会在另一个随机的家庭、随机的国家出生。确定吗？",[
+      {t:"换个世界",fn:()=>{try{localStorage.removeItem(SAVE_KEY);}catch(e){} startNewWorld(); lastDay=dayCount(); lastMonth=worldDate().mo; renderAll();}},
+      {t:"算了",fn:()=>{}}
+    ]);
+  };
+  window.addEventListener("error",e=>{
+    const eb=$("#errbar");eb.style.display="block";eb.textContent="页面出了一点问题："+(e.message||e.error);
+  });
+}
+function init(){
+  initCityDev();
+  if(!load()){startNewWorld();}
+  lastDay=dayCount(); lastMonth=worldDate().mo;
+  wire();
+  setInterval(tick,1000);
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
