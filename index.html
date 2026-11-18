@@ -12,7 +12,7 @@
   --muted:#8a8172; --soft:#efe9db;
 }
 html,body{background:#ece5d3;color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
-body{max-width:1280px;margin:0 auto;padding:10px 14px 30px}
+body{max-width:1600px;margin:0 auto;padding:10px 14px 30px}
 h1{font-size:22px;letter-spacing:2px}
 h2{font-size:15px;margin-bottom:8px}
 h3{font-size:13px;margin:10px 0 6px;color:var(--navy)}
@@ -29,7 +29,7 @@ header .sub{font-size:12px;color:var(--muted);margin-top:2px}
 .speeds{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .speeds .lbl{font-size:12px;color:var(--muted)}
 /* layout */
-main{display:grid;grid-template-columns:1.65fr 1fr;gap:10px}
+main{display:grid;grid-template-columns:2.75fr 1fr;gap:10px}
 @media(max-width:900px){main{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
 /* stage */
@@ -70,8 +70,7 @@ main{display:grid;grid-template-columns:1.65fr 1fr;gap:10px}
 .npc .rel{flex:1}
 .npc .rel b{font-size:12px}
 .npc .rel span{color:var(--muted)}
-.relbar{width:90px;height:7px;background:#eee7d2;border-radius:5px;overflow:hidden;flex:none}
-.relbar i{display:block;height:100%;background:#5b8dc9}
+/* H1：关系蓝条已删（见 renderPanels），样式随之移除 */
 .log{font-size:12px;line-height:1.7}
 .log div{padding:3px 0;border-bottom:1px dashed #f0ebdb}
 .log .d{color:var(--muted);margin-right:6px}
@@ -104,14 +103,16 @@ main{display:grid;grid-template-columns:1.65fr 1fr;gap:10px}
 #stage{cursor:grab;touch-action:none;user-select:none}
 #stage.dragging{cursor:grabbing}
 #stage svg{display:block}
-#camHint{position:absolute;left:10px;bottom:52px;background:rgba(20,18,14,.6);color:#fff;font-size:11px;padding:4px 10px;border-radius:14px;pointer-events:none}
-#camBack{position:absolute;right:10px;bottom:52px;background:rgba(255,255,255,.92);border:1px solid var(--line);font-size:12px;padding:4px 10px;border-radius:14px;display:none}
+#camHint{position:absolute;left:10px;top:52px;background:rgba(20,18,14,.6);color:#fff;font-size:11px;padding:4px 10px;border-radius:14px;pointer-events:none}
+#camBack{position:absolute;right:10px;top:52px;background:rgba(255,255,255,.92);border:1px solid var(--line);font-size:12px;padding:4px 10px;border-radius:14px;display:none}
 #flashback{position:absolute;left:50%;top:14px;transform:translateX(-50%);max-width:86%;background:rgba(84,60,20,.82);color:#ffe9b8;font-size:13px;line-height:1.6;padding:8px 14px;border-radius:10px;display:none;text-align:center}
-#innerVoice{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);max-width:88%;color:#fff;font-size:13px;font-style:italic;text-shadow:0 1px 4px rgba(0,0,0,.8);text-align:center;pointer-events:none;line-height:1.5}
+#innerVoice{position:absolute;left:50%;top:96px;transform:translateX(-50%);max-width:88%;color:#fff;font-size:13px;font-style:italic;text-shadow:0 1px 4px rgba(0,0,0,.8);text-align:center;pointer-events:none;line-height:1.5}
 #innerVoice .tag{font-size:10px;font-style:normal;opacity:.75;display:block}
 #nowNext{margin-top:10px;background:var(--soft);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.8}
 #nowNext b{color:var(--navy)}
 #nowNext .why{color:var(--muted);font-size:12px}
+#nowNext [data-iv-prose]{color:var(--navy);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+#causebar{margin-top:10px;background:#fff8e6;border:1px solid #e8dcc0;border-radius:10px;padding:8px 12px;font-size:12px;line-height:1.7;color:#6a5a3a}
 #proseStatus{font-size:13px;line-height:1.9;margin-bottom:6px}
 #proseStatus b{color:var(--navy)}
 details.nums{font-size:12px;color:var(--muted)}
@@ -153,6 +154,7 @@ details.nums summary{cursor:pointer}
         <div id="actbar">—</div>
       </div>
       <div id="nowNext"></div>
+      <div id="causebar" style="display:none"></div>
       <div class="interv" id="intervBox"></div>
       <div class="note">时间只往前走，不会倒流，也不会预告未来。快进只是让时间流得更快，事情都是现场长出来的。</div>
     </div>
@@ -199,6 +201,439 @@ details.nums summary{cursor:pointer}
 <div id="modalWrap"><div id="modal"></div></div>
 <script>
 "use strict";
+/* ===== V3 D1+G1 life.js inline ===== */
+/* ============================================================================
+ * 一方小世界 V3 · D1 背景人物 + G1 持续生命感（life.js）
+ * ----------------------------------------------------------------------------
+ * D1：街道 / 学校 / 商店里的背景人物——用的全是世界里真实存在的人
+ *   （社区邻居、同学、摊主），各有自己的事：抱球的孩子横穿马路、老两口
+ *   在小卖部门口聊天、同学传纸条 / 说悄悄话 / 转笔、老师在黑板上写字、
+ *   摊主招手叫卖、提篮的邻居慢慢走、货架前有人在挑东西。
+ * G1：持续生命感不依赖游戏时钟 tick——requestAnimationFrame 每帧改
+ *   SVG 属性：呼吸、眨眼、云飘、雨落、雪飘、树叶摇、窗外每 26 秒有人
+ *   走过。renderScene 每秒重建 innerHTML 会重置 CSS 动画，所以这里
+ *   不用 CSS 动画，全部用 rAF + 墙上时钟（performance.now）算位置，
+ *   场景重建后下一帧就回到正确位置。
+ * 铁律：不当游戏做——没有跳时间按钮，没有固定时间表，新人生从婴儿
+ *   开始，主人公永远不知道自己被创造；内心独白只给观众看。
+ * 依赖：只用底本已有的全局工具（$、clamp、focus、ageYears、stageScale、
+ *   findNPC、S、renderScene、drawPerson）。不引入外部资源。
+ * 接线：见 life.INTEGRATION.md（P1–P4 四处底本补丁 + 脸模块 P4 的
+ *   眨眼锚点说明）。本文件只定义函数、不自动启动；启动由 init() 里
+ *   的 ambInit() 调用负责（见 INTEGRATION.md P4）。
+ * ========================================================================== */
+"use strict";
+
+/* ---------- 运行时状态 ---------- */
+var ambRAF=null, ambT0=0, ambStarted=false, ambErrLogged=false;
+var ambFigs=[];          /* 当前场景的背景人物登记表，每次渲染后重建 */
+var ambWalkerState={};   /* 行人腿摆动的缓动状态，按 id 保存 */
+var ambEyesWrapped=false;
+
+/* 老两口的闲聊、摊主的叫卖：都是街头巷尾会说的话，不是台词本 */
+var AMB_CHAT_LINES=["今天菜价又涨了","孙子下周就回来","楼上昨晚又吵了一宿","这天儿说变就变","老李家上个月搬走了","你记得吃降压药"];
+var AMB_VENDOR_CALLS=["新鲜蔬菜，便宜卖！","刚到的苹果，又甜又脆！","走过路过，别错过！","白菜两块钱一斤！"];
+
+/* ---------- 小工具 ---------- */
+function ambNow(){ return (performance.now()-ambT0)/1000; }
+function ambFind(role){
+  if(typeof findNPC==="function"){ try{ return findNPC(role); }catch(e){ return null; } }
+  return null;
+}
+function ambSetRot(root, sel, ang, px, py){
+  if(!root) return;
+  const g=root.querySelector(sel);
+  if(g) g.setAttribute("transform","rotate("+ang.toFixed(1)+" "+px+" "+py+")");
+}
+/* 往返走：x0→x1（走）、停、x1→x0（走）、停；返回位置、方向、是否在走、
+   以及累计走过的路程（腿摆动的相位按路程算，停下时腿就停在原地，
+   不会凭空摆）。 */
+function ambPingPong(t, x0, x1, speed, pause){
+  const dist=Math.abs(x1-x0), legT=dist/speed, P=2*legT+2*pause;
+  const cyc=Math.floor(t/P); let u=t-cyc*P;
+  let x, dir, moving, dInCycle;
+  if(u<legT){ x=x0+u*speed; dir=1; moving=true; dInCycle=u*speed; }
+  else if(u<legT+pause){ x=x1; dir=1; moving=false; dInCycle=dist; }
+  else if(u<2*legT+pause){ const u2=u-legT-pause; x=x1-u2*speed; dir=-1; moving=true; dInCycle=dist+u2*speed; }
+  else { x=x0; dir=-1; moving=false; dInCycle=2*dist; }
+  return {x:x, dir:dir, moving:moving, dist:cyc*2*dist+dInCycle};
+}
+/* 传纸条：9 秒一轮。桌 A 停 2.5 秒 → 飞过去 1.5 秒（飞得高一点）
+   → 桌 B 停 3.5 秒 → 飞回来 1.5 秒（飞得低一点）。两个方向高度不同，
+   所以任意两个相隔 5 秒的采样点，位置一定不一样。 */
+function ambNotePos(t){
+  const P=9, u=((t%P)+P)%P, A=555, B=675;
+  if(u<2.5) return {x:A, y:245, r:-6};
+  if(u<4.0){ const k=(u-2.5)/1.5; return {x:A+(B-A)*k, y:238, r:8}; }
+  if(u<7.5) return {x:B, y:245, r:6};
+  const k=(u-7.5)/1.5; return {x:B-(B-A)*k, y:252, r:-8};
+}
+
+/* ---------- 眼睛包进 .amb-eye（眨眼用） ----------
+   底本 drawPerson 的眼睛是两颗 r=2 的圆点，相邻出现；脸模块 P4 会把
+   旧眼睛行整个换成 faceHeadSVG，所以这里不锚底本的眼睛行：
+   - 若 faceHeadSVG 已存在（合并后的文件，脸模块先行），包它的返回值；
+   - 否则（单独用本模块，如测试页）包 drawPerson 的返回值。
+   两种情况都先检查字符串里是否已有 class="amb-eye"，避免包两层
+   （两层 scaleY 会叠成 0.014，眼睛直接没了）。
+   真正的锚点在 INTEGRATION.md：合并时在 faceHeadSVG 返回处把眼睛
+   包进 <g class="amb-eye">；这里的正则只是运行时的兜底。 */
+function ambWrapEyesInString(s){
+  if(!s || s.indexOf('class="amb-eye"')>=0) return s;
+  return s.replace(
+    /<circle cx="([^"]+)" cy="([^"]+)" r="2" fill="#2b2620"\/><circle cx="([^"]+)" cy="([^"]+)" r="2" fill="#2b2620"\/>/,
+    '<g class="amb-eye"><circle cx="$1" cy="$2" r="2" fill="#2b2620"/><circle cx="$3" cy="$4" r="2" fill="#2b2620"/></g>');
+}
+function ambWrapEyes(){
+  if(ambEyesWrapped) return;
+  try{
+    if(typeof faceHeadSVG==="function"){
+      const _f=faceHeadSVG;
+      faceHeadSVG=function(){ return ambWrapEyesInString(_f.apply(null, arguments)); };
+      ambEyesWrapped=true;
+    } else if(typeof drawPerson==="function"){
+      const _d=drawPerson;
+      drawPerson=function(){ return ambWrapEyesInString(_d.apply(null, arguments)); };
+      ambEyesWrapped=true;
+    }
+  }catch(e){ /* 眼睛包不上也不破坏启动：只是不眨眼 */ }
+}
+
+/* ---------- 背景人物：统一的简笔小人 ----------
+   画法跟底本 drawPerson 同一套比例（头 r=15 在 (0,-52)，身高约 100，
+   脚在 y=0），所以放在同一个世界里不违和。腿和手臂各是独立的 <g>，
+   绕髋 / 肩旋转——走路时腿真的摆起来，不是整个人平移。
+   q 是世界里真实存在的人：名字、性别、年龄（决定大小和白发）都取
+   自他本人；o 里只给场景需要的东西（位置、衣服色、拿什么）。 */
+function ambFig(q, o){
+  o=o||{};
+  const age=q?ageYears(q):30;
+  const sc=(o.scale!=null)?o.scale:stageScale(age);
+  const skin=(q&&q.sex==="女")?"#f2c9a0":"#e8b890";
+  const hair=age>60?"#dddddd":"#2b2620";
+  const shirt=o.shirt||"#5b8dc9";
+  const label=o.label||(q?q.name:"");
+  const lean=o.lean||0;
+  let armL, armR;
+  if(o.ball){
+    /* 抱着球：两手都搭在球上，手臂不摆 */
+    armL='<g class="amb-armL" transform="rotate(0 -12 -28)"><line x1="-12" y1="-28" x2="-7" y2="-24" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/></g>';
+    armR='<g class="amb-armR" transform="rotate(0 12 -28)"><line x1="12" y1="-28" x2="7" y2="-24" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/></g>';
+  } else if(o.basket){
+    /* 提篮：左手拎着篮子不动，右手正常摆 */
+    armL='<g class="amb-armL" transform="rotate(0 -12 -28)"><line x1="-12" y1="-28" x2="-20" y2="-4" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/></g>';
+    armR='<g class="amb-armR" transform="rotate(0 12 -28)"><line x1="12" y1="-28" x2="15" y2="-6" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/></g>';
+  } else {
+    armL='<g class="amb-armL" transform="rotate(0 -12 -28)"><line x1="-12" y1="-28" x2="-15" y2="-6" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/></g>';
+    if(o.wave) armR='<g id="ambVendorArm" transform="rotate(-120 12 -28)"><line x1="12" y1="-28" x2="15" y2="-6" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/><circle cx="15" cy="-6" r="3" fill="'+skin+'"/></g>';
+    else if(o.reach) armR='<g id="ambShelfArm" transform="rotate(-75 12 -28)"><line x1="12" y1="-28" x2="15" y2="-6" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/><circle cx="15" cy="-6" r="3" fill="'+skin+'"/></g>';
+    else armR='<g class="amb-armR" transform="rotate(0 12 -28)"><line x1="12" y1="-28" x2="15" y2="-6" stroke="'+shirt+'" stroke-width="5" stroke-linecap="round"/></g>';
+  }
+  const ball=o.ball?'<circle cx="0" cy="-26" r="10" fill="#e8913a"/><path d="M -10 -26 L 10 -26 M 0 -36 L 0 -16" stroke="#a8641e" stroke-width="1.2"/>':"";
+  const basket=o.basket?'<g><path d="M -27 -8 L -21 6 L -9 6 L -15 -8 Z" fill="#b98a2f"/><path d="M -27 -8 Q -18 -17 -9 -8" stroke="#8a6a4a" stroke-width="2" fill="none"/></g>':"";
+  const labelSvg=label?'<rect x="-42" y="-92" width="84" height="17" rx="8" fill="rgba(0,0,0,0.55)"/><text x="0" y="-80" font-size="11" fill="#fff" text-anchor="middle">'+label+'</text>':"";
+  return '<g id="'+o.id+'" transform="translate('+o.x+' '+o.y+')"><g transform="scale('+sc+') rotate('+lean+')">'
+    + labelSvg
+    + '<g class="amb-legL" transform="rotate(0 -6 8)"><rect x="-11" y="8" width="9" height="24" rx="4" fill="#3a3a3a"/></g>'
+    + '<g class="amb-legR" transform="rotate(0 6 8)"><rect x="2" y="8" width="9" height="24" rx="4" fill="#3a3a3a"/></g>'
+    + '<rect x="-13" y="-36" width="26" height="44" rx="7" fill="'+shirt+'"/>'
+    + ball
+    + armL + armR
+    + basket
+    + '<circle cx="0" cy="-52" r="15" fill="'+skin+'"/>'
+    + '<path d="M-15,-55 a15,15 0 0 1 30,0 l0,-5 l-30,0 z" fill="'+hair+'"/>'
+    + '<g class="amb-eye"><circle cx="-4.5" cy="-52" r="1.8" fill="#2b2620"/><circle cx="4.5" cy="-52" r="1.8" fill="#2b2620"/></g>'
+    + '</g></g>';
+}
+
+/* 气泡：圆角白底 + 朝下的小尾巴。y 是气泡顶，尾巴尖在 y+34，指向
+   下面那人的头顶。位置一律在头顶上方，绝不放到画面底部——底部的
+   #actbar 活动条会盖住一半（上一版的教训）。 */
+function ambBubble(id, textId, x, y, w){
+  return '<g id="'+id+'"><rect x="'+(x-w/2)+'" y="'+y+'" width="'+w+'" height="26" rx="12" fill="rgba(255,253,246,0.95)" stroke="#d8d0bd"/>'
+    + '<text id="'+textId+'" x="'+x+'" y="'+(y+17)+'" font-size="12" fill="#2b2620" text-anchor="middle">…</text>'
+    + '<polygon points="'+(x-6)+','+(y+26)+' '+(x+6)+','+(y+26)+' '+x+','+(y+34)+'" fill="rgba(255,253,246,0.95)"/></g>';
+}
+
+/* ---------- 各场景的背景人物（世界坐标，x 0–1600） ---------- */
+function ambStreetSVG(p){
+  const kid=ambFind("neighborKid");
+  const old=ambFind("neighborOld"), oldW=ambFind("neighborOldW");
+  let s="";
+  /* 老两口在小卖部门口聊天：小卖部在世界 x 60–180，门口约 195–285。
+     两人面对面站着（lean 一正一负，微微向对方倾），老头偶尔比划一下。
+     两人相距 90px——名字牌各宽 84px，站近了牌子会叠在一起。 */
+  if(old){ s+=ambFig(old,{id:"ambWalker1",x:195,y:292,shirt:"#7a8a9a",label:old.name,lean:5});
+    ambFigs.push({id:"ambWalker1",kind:"stand",x:195,y:292,phase:0,gesture:true}); }
+  if(oldW){ s+=ambFig(oldW,{id:"ambWalker2",x:285,y:292,shirt:"#9a6a8a",label:oldW.name,lean:-5});
+    ambFigs.push({id:"ambWalker2",kind:"stand",x:285,y:292,phase:1.5}); }
+  if(old&&oldW) s+=ambBubble("ambChatBubble","ambChatText",240,164,124);
+  /* 抱球的孩子横穿马路：在路面上走（脚 y=348，马路在 y 300–380），
+     从 150 走到 750 再走回来，两头各停 2 秒——过马路前会先看看。 */
+  if(kid){ s+=ambFig(kid,{id:"ambWalker0",x:150,y:348,shirt:"#e8913a",label:kid.name,ball:true});
+    ambFigs.push({id:"ambWalker0",kind:"walk",x0:150,x1:750,y:348,speed:45,pause:2,ball:true}); }
+  return s;
+}
+
+function ambSchoolSVG(p){
+  /* 教室是 room-local 坐标，房间组 translate(400,0)，所以世界坐标 = 房间 +400。
+     课桌（房间 155/275/625/735）→ 世界 555/675/1025/1135；黑板（房间
+     180–620，y 90–200）→ 世界 580–1020；同学头在 y 228，r=12。 */
+  const mates=Object.values(S.people).filter(q=>q&&q.alive&&q.role==="classmate").slice(0,4);
+  const desks=[555,675,1025,1135];
+  let s="";
+  /* 同学们会眨眼：classroomSVG 画的同学只有头没有眼睛，这里补上两颗
+     眼睛（包进 .amb-eye，rAF 统一眨）。说悄悄话的那两位眼睛互相看。 */
+  mates.forEach((m,i)=>{
+    const cx=desks[i]; if(cx==null) return;
+    const dir=(i===2)?1.5:(i===3)?-1.5:0;
+    s+='<g class="amb-eye"><circle cx="'+(cx-4.5+dir)+'" cy="226" r="1.6" fill="#2b2620"/><circle cx="'+(cx+4.5+dir)+'" cy="226" r="1.6" fill="#2b2620"/></g>';
+  });
+  /* 传纸条：桌 0 和桌 1 之间飞来飞去 */
+  if(mates.length>=2)
+    s+='<g id="ambNote" transform="translate(555 245) rotate(-6)"><rect x="-8" y="-5" width="16" height="10" rx="1" fill="#fff" stroke="#d8d0bd"/><line x1="-5" y1="-1" x2="5" y2="-1" stroke="#8a8172" stroke-width="1"/><line x1="-5" y1="2" x2="3" y2="2" stroke="#8a8172" stroke-width="1"/></g>';
+  /* 悄悄话：桌 2 和桌 3 之间头顶的小气泡，时隐时现 */
+  if(mates.length>=4)
+    s+='<g id="ambWhisper" opacity="0.95"><rect x="1063" y="190" width="34" height="20" rx="10" fill="rgba(255,253,246,0.95)" stroke="#d8d0bd"/><text x="1080" y="204" font-size="11" fill="#2b2620" text-anchor="middle">……</text></g>';
+  /* 转笔：桌 1 的桌面上，一支笔转个不停 */
+  if(mates.length>=2)
+    s+='<g id="ambPencil" transform="rotate(0 675 250)"><rect x="668" y="248.8" width="14" height="2.4" rx="1.2" fill="#e8913a"/><rect x="682" y="248.8" width="3" height="2.4" fill="#c8402a"/></g>';
+  /* 老师写字：粉笔沿着黑板第一行慢慢往右写 */
+  s+='<circle id="ambChalk" cx="620" cy="128" r="2.5" fill="#fff"/>';
+  return s;
+}
+
+function ambShopSVG(p){
+  /* 商店也是 room-local +400：柜台（房间 80–320）→ 世界 480–720；
+     货架（房间 480–660）→ 世界 880–1060。V2 里没有真正的“菜市场”
+     地点，集市只能做在商店场景里——摊主就是菜市场摊主本人。 */
+  const vendor=ambFind("vendor");
+  const aunt=ambFind("shopaunt");
+  const wife=ambFind("shopwife");
+  let s="";
+  /* 摊主站在柜台前面招手叫卖 */
+  if(vendor){ s+=ambFig(vendor,{id:"ambVendor",x:600,y:292,shirt:"#3d7a4a",label:vendor.name,wave:true});
+    s+=ambBubble("ambVendorCall","ambVendorCallText",600,164,150);
+    ambFigs.push({id:"ambVendor",kind:"stand",x:600,y:292,wave:true}); }
+  /* 提篮的邻居慢慢走：走得慢（10px/s），中途停下来看看——脚 y=330，
+     比摊主低一截，是离观众更近的那一侧，不会穿过摊主。 */
+  if(aunt){ s+=ambFig(aunt,{id:"ambShopper",x:450,y:330,shirt:"#8a6a9a",label:aunt.name,basket:true});
+    ambFigs.push({id:"ambShopper",kind:"walk",x0:450,x1:760,y:330,speed:10,pause:2,basket:true}); }
+  /* 货架前有人在挑东西：手伸向货架，慢慢挪动 */
+  if(wife){ s+=ambFig(wife,{id:"ambShelfBuyer",x:950,y:292,shirt:"#6a8a9a",label:wife.name,reach:true});
+    ambFigs.push({id:"ambShelfBuyer",kind:"stand",x:950,y:292,reach:true}); }
+  return s;
+}
+
+function ambWindowSVG(p, loc){
+  /* 窗外有人走过：客厅窗（房间 620,90,60×90）→ 世界 1020–1080；
+     卧室窗（房间 560,120,90×110）→ 世界 960–1050。路人个子小
+     （scale 0.55）、没名字，是窗外远远走过的人，不是屋里的人。 */
+  const win=(loc==="bedroom")?{x0:950,x1:1060,y:228}:{x0:1010,x1:1090,y:178};
+  const q=ambFind("neighborNoisy")||ambFind("guard");
+  ambFigs.push({id:"ambWindowPasser",kind:"window",x0:win.x0,x1:win.x1,y:win.y});
+  return ambFig(q,{id:"ambWindowPasser",x:win.x0,y:win.y,scale:0.55,shirt:"#5b8dc9",label:""});
+}
+
+/* 树叶：锚在 #ambTree 的树冠圆心上，运行时读 cx/cy——场景模块 E5b
+   把树从 1200 挪到 1240 之后，叶子自动跟过去，不用改本文件。 */
+function ambTreeLeaves(){
+  const tree=document.getElementById("ambTree"); if(!tree) return;
+  tree.querySelectorAll(".amb-leaf").forEach(e=>e.remove());
+  const can=tree.querySelector("circle"); if(!can) return;
+  const cx=parseFloat(can.getAttribute("cx")), cy=parseFloat(can.getAttribute("cy"));
+  if(!isFinite(cx)||!isFinite(cy)) return;
+  const cols=["#4a8a3d","#35703a","#5a9a4a"];
+  const offs=[[-22,-8,13],[18,-14,11],[2,16,12]];
+  let s="";
+  offs.forEach((o,i)=>{
+    s+='<circle class="amb-leaf" cx="'+(cx+o[0])+'" cy="'+(cy+o[1])+'" r="'+o[2]+'" fill="'+cols[i]+'" opacity="0.9"/>';
+  });
+  tree.insertAdjacentHTML("beforeend", s);
+}
+
+/* ---------- 渲染后挂接：renderScene 每秒重建 innerHTML，本函数在它
+   之后立刻把生命感层补回去；rAF 下一帧就把每个元素放到正确位置。 */
+function ambAfterRender(){
+  if(!S) return;
+  const svg=document.getElementById("scene"); if(!svg) return;
+  const old=svg.querySelector("#ambLayer"); if(old) old.remove();
+  ambFigs=[];
+  const p=focus(); if(!p) return;
+  const locKey=(p.travel&&p.travel.mode==="汽车")?"bus":p.loc;
+  ambTreeLeaves();
+  let html="";
+  if(locKey==="street") html+=ambStreetSVG(p);
+  else if(locKey==="school"||locKey==="university") html+=ambSchoolSVG(p);
+  else if(locKey==="shop") html+=ambShopSVG(p);
+  if(locKey==="living"||locKey==="bedroom") html+=ambWindowSVG(p, locKey);
+  if(html){
+    const layer=document.createElementNS("http://www.w3.org/2000/svg","g");
+    layer.setAttribute("id","ambLayer");
+    layer.innerHTML=html;
+    /* 夜里的深蓝罩子要盖在人物上面（人也在夜里），所以插到它前面 */
+    const nightRect=svg.querySelector('rect[fill="#0a1030"]');
+    if(nightRect) svg.insertBefore(layer, nightRect); else svg.appendChild(layer);
+  }
+  ambUpdate(ambNow());
+}
+
+/* ---------- rAF：每帧改 SVG 属性（不依赖游戏时钟） ---------- */
+function ambCycleText(id, lines, period, t){
+  const el=document.getElementById(id); if(!el) return;
+  const txt=lines[Math.floor(t/period)%lines.length];
+  if(el.textContent!==txt) el.textContent=txt;
+}
+function ambUpdateWalk(el, t, spec){
+  const pos=ambPingPong(t, spec.x0, spec.x1, spec.speed, spec.pause);
+  const st=ambWalkerState[spec.id]||(ambWalkerState[spec.id]={ease:0});
+  st.ease+=((pos.moving?1:0)-st.ease)*0.18; /* 起步、停下时腿慢慢收住，不会啪一下定住 */
+  const swing=Math.sin(pos.dist*0.085)*22*st.ease;
+  const bob=Math.abs(Math.cos(pos.dist*0.085))*1.6*st.ease;
+  el.setAttribute("transform","translate("+pos.x.toFixed(1)+" "+(spec.y+bob).toFixed(1)+")");
+  ambSetRot(el,".amb-legL", swing, -6, 8);
+  ambSetRot(el,".amb-legR", -swing, 6, 8);
+  if(!spec.ball){
+    if(!spec.basket) ambSetRot(el,".amb-armL", -swing*0.7, -12, -28);
+    ambSetRot(el,".amb-armR", swing*0.7, 12, -28);
+  }
+}
+function ambUpdateStand(el, t, spec){
+  const sway=Math.sin(t*0.7+(spec.phase||0))*1.3; /* 站着也不是木头：微微晃 */
+  el.setAttribute("transform","translate("+spec.x+" "+spec.y+") rotate("+sway.toFixed(2)+" 0 0)");
+  if(spec.gesture) ambSetRot(el,".amb-armL", -25+Math.sin(t*0.8+1)*14, -12, -28);
+  if(spec.wave){
+    const a=document.getElementById("ambVendorArm");
+    if(a) a.setAttribute("transform","rotate("+(-120+Math.sin(t*3)*16).toFixed(1)+" 12 -28)");
+  }
+  if(spec.reach){
+    const a=document.getElementById("ambShelfArm");
+    if(a) a.setAttribute("transform","rotate("+(-75+Math.sin(t*1.2)*8).toFixed(1)+" 12 -28)");
+  }
+}
+function ambUpdateWindow(el, t, spec){
+  const u=((t%26)+26)%26; /* 26 秒一趟：前 2 秒没人，接着 4 秒走过去 */
+  if(u<2||u>=6){ el.setAttribute("opacity","0"); return; }
+  const k=(u-2)/4;
+  const x=spec.x0+(spec.x1-spec.x0)*k;
+  const op=k<0.12?k/0.12:(k>0.88?(1-k)/0.12:1);
+  el.setAttribute("opacity",(op*0.9).toFixed(2));
+  el.setAttribute("transform","translate("+x.toFixed(1)+" "+spec.y+")");
+  const swing=Math.sin(x*0.09)*18;
+  ambSetRot(el,".amb-legL", swing, -6, 8);
+  ambSetRot(el,".amb-legR", -swing, 6, 8);
+}
+function ambUpdate(t){
+  if(!S) return;
+  try{
+    /* 呼吸：主人公胸口微微起伏（±1.2%，故意小——截图里几乎看不出，
+       但 transform 每帧都在变；呼吸本来就是看不见的）。 */
+    const pr=document.getElementById("ambProtag");
+    if(pr){
+      const cx=(S.px||800), cy=250, sy=1+0.012*Math.sin(t*1.57);
+      pr.setAttribute("transform","translate("+cx+" "+cy+") scale(1 "+sy.toFixed(4)+") translate("+(-cx)+" "+(-cy)+")");
+    }
+    /* 云：慢慢往右飘，飘出头再从左边回来 */
+    const cl=document.getElementById("ambClouds");
+    if(cl) cl.setAttribute("transform","translate("+(-160+((t*6.1)%320)).toFixed(1)+" 0)");
+    /* 雨：16 滴，270px/s 往下落；落到地面（y 300）以下就被地面盖住 */
+    const rain=document.getElementById("ambRain");
+    if(rain){
+      const drops=rain.querySelectorAll(".amb-drop");
+      for(let i=0;i<drops.length;i++){
+        const y=((i*47+t*270)%360);
+        drops[i].setAttribute("y1", y.toFixed(1));
+        drops[i].setAttribute("y2", (y+24).toFixed(1));
+      }
+    }
+    /* 雪：慢慢飘，还左右晃 */
+    const snow=document.getElementById("ambSnow");
+    if(snow){
+      const flakes=snow.querySelectorAll(".amb-flake");
+      for(let i=0;i<flakes.length;i++){
+        const f=flakes[i];
+        if(!f.dataset.bx) f.dataset.bx=f.getAttribute("cx");
+        const bx=parseFloat(f.dataset.bx)||0;
+        f.setAttribute("cx",(bx+Math.sin(t*0.8+i)*6).toFixed(1));
+        f.setAttribute("cy",(20+((i*37+t*22)%320)).toFixed(1));
+      }
+    }
+    /* 树叶：绕着自己的圆心轻轻摇 */
+    const tree=document.getElementById("ambTree");
+    if(tree){
+      const leaves=tree.querySelectorAll(".amb-leaf");
+      leaves.forEach((lf,i)=>{
+        const cx=parseFloat(lf.getAttribute("cx")), cy=parseFloat(lf.getAttribute("cy"));
+        if(isFinite(cx)&&isFinite(cy))
+          lf.setAttribute("transform","rotate("+(Math.sin(t*0.9+i*1.3)*4).toFixed(2)+" "+cx+" "+cy+")");
+      });
+    }
+    /* 背景人物：走 / 站 / 窗外走过 */
+    for(let i=0;i<ambFigs.length;i++){
+      const spec=ambFigs[i];
+      const el=document.getElementById(spec.id); if(!el) continue;
+      if(spec.kind==="walk") ambUpdateWalk(el, t, spec);
+      else if(spec.kind==="stand") ambUpdateStand(el, t, spec);
+      else if(spec.kind==="window") ambUpdateWindow(el, t, spec);
+    }
+    /* 学校：纸条飞、笔转、粉笔写、悄悄话气泡时隐时现 */
+    const note=document.getElementById("ambNote");
+    if(note){ const np=ambNotePos(t);
+      note.setAttribute("transform","translate("+np.x.toFixed(1)+" "+np.y+") rotate("+np.r+")"); }
+    const pencil=document.getElementById("ambPencil");
+    if(pencil) pencil.setAttribute("transform","rotate("+((t*200)%360).toFixed(1)+" 675 250)");
+    const chalk=document.getElementById("ambChalk");
+    if(chalk){
+      chalk.setAttribute("cx",(620+((t*15)%360)).toFixed(1));
+      chalk.setAttribute("cy",(128+Math.sin(t*2)*1.5).toFixed(1));
+    }
+    const whisper=document.getElementById("ambWhisper");
+    if(whisper) whisper.setAttribute("opacity",((t%14)<10)?"0.95":"0.25");
+    /* 气泡文字轮换 */
+    ambCycleText("ambChatText", AMB_CHAT_LINES, 8, t);
+    ambCycleText("ambVendorCallText", AMB_VENDOR_CALLS, 7, t);
+    /* 眨眼：每人每 3.7 秒眨一次，闭上 0.15 秒；各人错开 0.9 秒。
+       scaleY 是 CSS transform，.amb-eye 用了 transform-box: fill-box，
+       所以是原地闭眼，不会把眼睛压到脚底下去。 */
+    const eyes=document.querySelectorAll(".amb-eye");
+    for(let i=0;i<eyes.length;i++){
+      eyes[i].style.transform=(((t+i*0.9)%3.7)<0.15)?"scaleY(0.12)":"";
+    }
+  }catch(e){
+    if(!ambErrLogged){ ambErrLogged=true;
+      if(typeof console!=="undefined"&&console.error) console.error("[amb] tick error", e); }
+  }
+}
+function ambTick(){
+  ambUpdate(ambNow());
+  ambRAF=requestAnimationFrame(ambTick);
+}
+
+/* ---------- 启动 ---------- */
+function ambInit(){
+  if(ambStarted) return; ambStarted=true;
+  if(typeof document==="undefined") return;
+  if(!document.getElementById("ambStyle")){
+    const st=document.createElement("style"); st.id="ambStyle";
+    st.textContent=".amb-eye{transform-box:fill-box;transform-origin:center}";
+    document.head.appendChild(st);
+  }
+  ambWrapEyes();
+  /* 包住 renderScene：它每跑一次，本模块就把生命感层补回去。
+     别的模块也可能包 renderScene——这里包的是当前那一版，
+     谁先谁后都能串起来。 */
+  if(typeof renderScene==="function" && !renderScene.__ambWrapped){
+    const _rs=renderScene;
+    const wrapped=function(){ _rs(); ambAfterRender(); };
+    wrapped.__ambWrapped=true;
+    renderScene=wrapped;
+  }
+  ambT0=performance.now();
+  ambAfterRender();
+  ambRAF=requestAnimationFrame(ambTick);
+}
+
+
 /* ============ 工具 ============ */
 const $=s=>document.querySelector(s);
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -329,6 +764,7 @@ function logEvt(text,major){
   S.log.unshift({d:wd.ds+" "+wd.hm,text,major:!!major});
   if(S.log.length>300)S.log.length=300;
   if(major){S.timeline.unshift({d:wd.ds,text});if(S.timeline.length>200)S.timeline.length=200;}
+  c1MarkFromLog(focus(),text); // C1：灾害/搬家不在 EVENTS 里，从日志文本认进类别记录
 }
 /* ============ 出生：完全随机，起点不决定终点 ============ */
 function rollBirth(){
@@ -487,6 +923,14 @@ function sleepAct(p,h){
 }
 function eatAct(p,h){
   const meal=h<10?"早饭":h<14?"午饭":"晚饭";
+  // F1：吃饭不是凭空变出一桌菜——先洗手、摆碗筷、把菜端上桌，再吃
+  if(!p.flags.eatPrep){
+    p.flags.eatPrep=true;
+    return mkAct("prep","kitchen","准备吃饭",
+      pick(["洗了手，把碗筷摆上桌","妈妈把菜一盘盘端上桌，盛好了饭","把桌子擦干净，碗筷都摆好了"]),
+      "饭快好了，先准备一下", 0.5);
+  }
+  p.flags.eatPrep=false;
   const dishes=dishesFor(p,meal);
   const hungry=p.attrs.hunger<30;
   const a=mkAct("eat","kitchen","吃"+meal, dishes,
@@ -544,8 +988,16 @@ function babyDecide(p,h){
       "他哭了，妈妈在哄", 1);
   }
   if(sinceFeed>=3 || bc.lastFeedMin<0){
+    const milk=p.familyMoney>2000?"奶粉":"母乳";
+    // F1：喂奶不是凭空变出一瓶奶——先冲奶（母乳就先把他抱到怀里），再喂
+    if(!bc.feedPrep){
+      bc.feedPrep=true;
+      return mkAct("prep","bedroom", milk==="奶粉"?"冲奶粉":"准备喂奶",
+        milk==="奶粉"?"妈妈去冲奶粉，倒了温水，试了试温度，不烫才喂":"妈妈把他抱到怀里，准备喂奶",
+        "饿了，妈妈在准备奶", 0.5);
+    }
+    bc.feedPrep=false;
     bc.lastFeedMin=mins;
-    const milk=p.familyMoney>2000?pick(["冲奶粉","冲奶粉"]):"母乳";
     return mkAct("feed","bedroom","喝奶", `喝${milk}，妈妈试了试温度，不烫才喂${chance(.2)?"，喝完拍嗝，吐了点奶":"，喝完拍了拍嗝"}`,
       "饿了，该喝奶了", 1);
   }
@@ -580,13 +1032,16 @@ function decideActivity(p,h){
   // 注意：婴儿不走这条（婴儿喝奶由 babyDecide 管）。
   if(age>=1&&A.hunger<18){
     const a=eatAct(p,h);
-    if(p.flags.inPrison)a.loc="prison";
+    // 地点跟着人实际在哪走：人在路上就按车站算（坐牢/当兵的人根本出不了远门，见 startTravel 的守门）
+    if(p.travel&&!p.travel.stay)a.loc="station";
+    else if(p.flags.inPrison)a.loc="prison";
     else if(p.flags.inArmy)a.loc="army";
-    else if(p.travel)a.loc="station";
-    else if(p.illness){a.detail="喝了点粥，嗓子疼，吃不下多少";a.dishes=["白粥"];}
+    else if(p.illness&&a.kind==="eat"){a.detail="喝了点粥，嗓子疼，吃不下多少";a.dishes=["白粥"];}
     return a;
   }
-  if(p.travel) return mkAct("travel","station","赶路", `去${p.travel.to}的路上（${p.travel.mode}，还剩${p.travel.daysLeft}天）`, "要出门", 2);
+  // F1：多日赶路夜里也在车上打盹——真实世界里没人能连着几天不睡觉，体力会掉到 0
+  if(p.travel&&!p.travel.stay&&(h>=22||h<6)) return mkAct("sleep","station","在车上打盹","靠在座椅上打盹，车轮声哐当哐当","夜里了，在车上眯一会儿", h>=22?(24-h+6):(6-h));
+  if(p.travel&&!p.travel.stay) return mkAct("travel","station","赶路", `去${p.travel.to}的路上（${p.travel.mode}，还剩${p.travel.daysLeft}天）`, "要出门", 2);
   if(p.flags.inPrison){
     if(h<6) return mkAct("sleep","prison","睡觉","铁窗里的一夜","熄灯了",2);
     if(h<12) return mkAct("work","prison","劳作","在监狱里劳作","到了劳作时间",4);
@@ -603,13 +1058,15 @@ function decideActivity(p,h){
   // 需求插队：饿了先吃，困了先睡（上课/上班时撑不住才走）
   const urg=needUrgent(p);
   if(urg==="eat") return eatAct(p,h);
-  if(urg==="sleep") return sleepAct(p,h);
+  if(urg==="sleep"){if(p.travel&&!p.travel.stay)return mkAct("sleep","station","在车上打盹","实在撑不住了，靠在座椅上打盹","累坏了，先眯一会儿",2);return sleepAct(p,h);}
   if(urg==="rest") return mkAct("rest","bedroom","躺着歇会儿","躺着，浑身没劲","身体撑不住了",2);
   // 夜里：该睡就睡（夜猫子晚一两个小时）
   const nightStart=p.chrono==="夜猫子"?23:21;
   if(h>=nightStart||h<ds.wake) return sleepAct(p,h);
   // 制度：上学 / 上班（有波动：偶尔迟到、偶尔请假、偶尔加班、偶尔想出门）
   if(age>=6&&age<23&&p.edu!=="无"&&!ds.schoolOff){
+    // F1：上学不是一睁眼就坐在教室里——先背上书包出门，走去学校
+    if(h>=7&&h<8&&!(S.world.epidemic&&S.world.epidemic.closed)) return mkAct("school_go","school","去上学","背上书包出门，往学校走","快上课了，得出门了",1);
     if((h>=8&&h<12)||(h>=14&&h<17)){
       if(S.world.epidemic&&S.world.epidemic.closed) return mkAct("school","living","上网课","在家上网课，老师在屏幕里讲"+subjectFor(age),"疫情停课",3);
       return schoolAct(p,h);
@@ -652,12 +1109,24 @@ function tickActivity(p,h){
     S.act=act;
     // C1+C2：换地方就走过去，不是瞬移；但婴儿不会走路，是被抱过去、放过去的，直接到地方
     S.pxTarget=LOC_X[act.loc]||800; if(ageYears(p)<1){S.px=S.pxTarget;S.walking=false;} else S.walking=true;
+    // F1-02/X2：上课开始人就已经在学校里——走路是 7 点出门那一小时的事，不是 9 点还在半路上
+    if(act.kind==="school"){S.px=S.pxTarget;S.walking=false;}
+    // F1-02：坐车时人在车上跟着旅程走（不是一直站在车站），位置按旅程进度算
+    if(act.kind==="travel"&&p.travel){S.px=travelPx(p);S.walking=false;}
     // C9：环境互动 —— 拉椅子、推门、撑伞、扇风、搓手（behavior.js：maybeInteract）
     maybeInteract(p, prevLoc, act, h);
     // C12：上课铃声、碗筷声
     if(act.kind==="school"&&h===8)playSound("bell");
     if(act.kind==="eat")playSound("clink");
   }
+  /* [E1] 换地方直接切镜：镜头平时每 tick 只滑 6%（tick 里 S.camX+=(S.px-S.camX)*0.06），
+     人到教室了镜头还停在上一个房间，黑板露一半。换了地方就直接把镜头切到新地点，
+     之后他走路时镜头再慢慢跟——真实世界里你转头看人，视线是直接过去的，不是滑过去的。
+     位置：tickActivity 末尾、引擎 F1-02 替换块的后面（见 INTEGRATION.md），读最终 pxTarget。
+     prevLoc 在 F1-02 块里是块级作用域，这里用 S._sceneLastLoc 记上一次地点。
+     用户自己拖过镜头（camDrag）时不抢镜头。 */
+  if(S._sceneLastLoc&&S._sceneLastLoc!==act.loc&&!S.camDrag){S.camX=S.pxTarget;}
+  S._sceneLastLoc=act.loc;
   p.loc=act.loc; p.act=act.act; p.outfit=outfitFor(p,act);
   return act;
 }
@@ -759,13 +1228,31 @@ function startTravel(p,destCity,reason){
   // 先找目标城市属于哪个国家
   let dc=null; for(const c of COUNTRIES)for(const ci of c.cities)if(ci.name===destCity)dc={country:c.id,city:ci.name};
   if(!dc)return false;
+  if(p.travel&&p.travel.stay)return false; // C1：正在外地旅行小住，别又从旅途中出发。
+  if(!cityOf({country:p.country,city:p.city}))return false; // R1：出发地不在城市表里，宁可不走也别崩。
+  // F1/X1：坐牢/当兵的人不能说走就走
+  if(p.flags.inPrison||p.flags.inArmy)return false;
   const mode=travelMode({country:p.country,city:p.city},dc);
   const cost=travelCost({country:p.country,city:p.city},dc,mode);
   const days=travelDays({country:p.country,city:p.city},dc,mode);
-  if(p.money+p.familyMoney*0.3<cost){logEvt(`✈ ${p.name}想去${destCity}（${reason}），但钱不够（需要${fmtMoney(cost)}），只能作罢。`);return false;}
-  const fromSelf=Math.min(p.money,cost); p.money-=fromSelf; p.familyMoney-=Math.max(0,cost-fromSelf);
-  p.travel={to:destCity,country:dc.country,mode,daysLeft:days,reason};
-  logEvt(`✈ ${p.name}出发去${destCity}（${reason}），坐${mode}，${fmtMoney(cost)}，要走${days}天。`,true);
+  // C1：旅行是往返，不是搬家——出发时就把回程的票钱一起算上（真实世界里人都是买往返票的），
+  // 回来时不再另收费，也就不会有人“去了回不来”滞留在外地。
+  let retCost=0;
+  if(reason==="旅行"){const m2=travelMode(dc,{country:p.country,city:p.city});retCost=travelCost(dc,{country:p.country,city:p.city},m2);}
+  const totalCost=cost+retCost;
+  if(p.money+p.familyMoney*0.3<totalCost){logEvt(`✈ ${p.name}想去${destCity}（${reason}），但钱不够（需要${fmtMoney(totalCost)}），只能作罢。`);return false;}
+  // X1：未成年人不独自坐长途车——要么父母同行，要么不去。
+  // 真实世界里 6 岁孩子不会独自坐 5 天火车出远门。
+  let withParents=false;
+  if(ageYears(p)<18){
+    const guardians=(p.parents||[]).map(id=>S.people[id]).filter(q=>q&&q.alive);
+    if(!guardians.length){logEvt(`✈ ${p.name}想去${destCity}（${reason}），但他还是个孩子，家里没大人能陪他去，只能作罢。`);return false;}
+    withParents=true;
+  }
+  const fromSelf=Math.min(p.money,totalCost); p.money-=fromSelf; p.familyMoney-=Math.max(0,totalCost-fromSelf);
+  p.travel={to:destCity,country:dc.country,mode,daysLeft:days,totalDays:days,reason,withParents,startMin:S.minutes,home:{country:p.country,city:p.city},stayDays:reason==="旅行"?rint(3,10):0};
+  S.act=null; // 出发了，之前那个活动（比如卧室睡觉）就结束了，下一小时按路上的情形重新决定
+  logEvt(`✈ ${p.name}出发去${destCity}（${reason}），坐${mode}，${fmtMoney(totalCost)}，要走${days}天${withParents?"，爸爸妈妈陪他一起去":""}${reason==="旅行"?"，往返的票都买好了，玩几天就回来":""}。`,true);
   return true;
 }
 /* ---- B7：钱的来龙去脉 —— 每一笔都有来处，写进 moneyLog ---- */
@@ -798,6 +1285,7 @@ function processDay(){
   if(p.grief>0)p.grief=Math.max(0,p.grief-0.15);
   if(p.anxiety>0)p.anxiety=Math.max(0,p.anxiety-0.2);
   if(p.illness)illnessStep(p);
+  if(p.pet){if(p.pet.bornDay==null)p.pet.bornDay=dayCount()-Math.round((p.pet.age||0)*365);p.pet.age=Math.floor((dayCount()-p.pet.bornDay)/365);} // C1：宠物按真实年月长大（不是按触发次数）
   updateDesire(p);
   if(typeof depthDaily==="function")depthDaily(p);
   // 学习与技能随活动成长（阶层影响教育资源）
@@ -821,7 +1309,37 @@ function processDay(){
   if(p.flags.inPrison){p.flags.inPrison--;if(p.flags.inPrison<=0){delete p.flags.inPrison;logEvt(`⛓ ${p.name}出狱了。`,true);p.traumas.push({name:"牢狱之灾",sev:7,age:Math.floor(age)});}}
   if(p.flags.inArmy){p.flags.inArmy--;if(p.flags.inArmy<=0){delete p.flags.inArmy;p.job=null;logEvt(`🎖 ${p.name}退伍了。`,true);}}
   // 在路上
-  if(p.travel){p.travel.daysLeft--;if(p.travel.daysLeft<=0){p.country=p.travel.country;p.city=p.travel.to;const r=p.travel.reason;p.travel=null;logEvt(`📍 ${p.name}到了${p.city}（${r}）。`,true);}}
+  if(p.travel){
+    if(p.travel.stay){
+      // C1：旅行在外地小住几天，不是搬家——住够了就启程回家。
+      p.travel.stayLeft--;
+      if(p.travel.stayLeft<=0){
+        const home=p.travel.home;
+        const mode2=travelMode({country:p.country,city:p.city},home);
+        const days2=travelDays({country:p.country,city:p.city},home,mode2);
+        const wp2=p.travel.withParents;
+        p.travel={to:home.city,country:home.country,mode:mode2,daysLeft:days2,totalDays:days2,reason:"旅行回家",returning:true,withParents:wp2,startMin:S.minutes};
+        S.act=null;
+        logEvt(`✈ ${p.name}在${p.city}玩够了，准备回${home.city}了。`,true);
+      }
+    } else {
+      p.travel.daysLeft--;
+      if(p.travel.daysLeft<=0){
+        p.country=p.travel.country;p.city=p.travel.to;
+        const r=p.travel.reason;const wp=p.travel.withParents;const isRet=!!p.travel.returning;
+        if(r==="旅行"&&!isRet){
+          // C1：旅行到了地方先住几天（stayDays），住够再回家，不算搬家。
+          p.travel={stay:true,stayLeft:p.travel.stayDays||5,home:p.travel.home,withParents:wp,reason:"旅行"};
+          S.act=null; // R3：住下就清掉旧的旅行活动，不让它撑到下一帧
+          logEvt(`📍 ${p.name}到了${p.city}（旅行），打算住几天再回去。`,true);
+        } else {
+          p.travel=null;
+          if(wp){for(const id of (p.parents||[])){const g=S.people[id];if(g&&g.alive){g.country=p.country;g.city=p.city;}}}
+          logEvt(isRet?`📍 ${p.name}回到了${p.city}。`:`📍 ${p.name}到了${p.city}（${r}）。`,true);
+        }
+      }
+    }
+  }
   // 每日事件 + 记忆闪回（C11：气味/老地方/旧物）
   maybeFlashback(p);
   rollDailyEvents(p);
@@ -916,7 +1434,7 @@ function processMonth(){
 function quakeHit(p,mag){
   if(chance(.25)){p.attrs.health=clamp(p.attrs.health-rint(10,35),0,100);p.traumas.push({name:"地震惊吓",sev:5,age:Math.floor(ageYears(p))});logEvt("🤕 地震里受了伤，住进了医院。");}
   if(chance(.4)){p.familyMoney=Math.round(p.familyMoney*0.6);logEvt("🏚 家里的房子在地震里受损，修缮花了一大笔钱。");}
-  if(chance(.2)){const c=countryById(p.country);const other=c.cities.find(x=>x.name!==p.city);if(other){p.city=other.name;logEvt(`🚚 全家搬去了${other.name}。`);}}
+  if(chance(.35)){const c=countryById(p.country);const others=c.cities.filter(x=>x.name!==p.city);const other=pick(others);if(other){p.city=other.name;logEvt(`🚚 全家搬去了${other.name}。`);noteCause(p,`地震之后，全家不得不搬去${other.name}。`);}}
 }
 /* ---- 死亡：年龄、疾病、意外，无常随时发生 ---- */
 function checkDeath(q){
@@ -958,8 +1476,10 @@ function getJob(p,industry){
   logEvt(`💼 ${p.name}找到工作了：${p.job}（${ind}），月薪${fmtMoney(sal)}${boom?"，赶上了"+S.world.era.name:""}。`);
 }
 function marry(p,who){
+  const wasPartner=p.partner===who.id;
   p.spouse=who.id;p.partner=null;
   logEvt(`💍 ${p.name}和${who.name}结婚了！`,true);
+  noteCause(p,wasPartner?`和${who.name}处了这么久，两个人决定结婚了。`:`遇到了${who.name}，两个人决定结婚了。`);
 }
 function haveChild(p){
   const kid=makePerson({sex:pick(["男","女"]),birthDay:dayCount(),gen:p.gen+1,surname:p.name.slice(0,1),parents:[p.id]});
@@ -969,6 +1489,7 @@ function haveChild(p){
   // 孩子继承一部分性格（遗传+家教）
   for(const k in kid.traits)kid.traits[k]=clamp(Math.round(p.traits[k]*0.5+rnd(0,50)),0,100);
   logEvt(`🍼 ${p.name}的孩子出生了：${kid.name}！`,true);
+  noteCause(p,`成家之后，孩子出生了：${kid.name}，家里多了一口人。`);
   return kid;
 }
 const EVENTS=[
@@ -986,7 +1507,7 @@ const EVENTS=[
  {id:"love_betray",when:p=>!!p.partner,pp:p=>0.0012,run(p){const g=S.people[p.partner];if(!g)return null;relDelta(p,g.id,-60,80);p.partner=null;addTrauma(p,"被恋人背叛",6);return `💔 发现${g.name}背叛了他，分手了，很久缓不过来。`;}},
  {id:"love_back",when:p=>!p.partner&&p.traumas.some(t=>t.name==="被恋人背叛"),pp:p=>0.0008,run(p){return "💕 兜兜转转，前任回来找他复合了——要不要答应，他还没想好。";}},
  {id:"fight",when:p=>ageYears(p)>=12&&ageYears(p)<35,pp:p=>0.001+p.traits.risk/100*0.004+(100-p.attrs.character)/100*0.004,run(p){p.attrs.health=clamp(p.attrs.health-8,0,100);p.attrs.character=clamp(p.attrs.character-2,0,100);if(chance(.25)){return crimeHit(p,"打架斗殴");}return "🥊 和人打了一架，鼻青脸肿地回了家。";}},
- {id:"gaokao",when:p=>ageYears(p)>=17.9&&ageYears(p)<18.2&&!p.flags.gaokaoDone,major:true,pp:()=>1,run(p){p.flags.gaokaoDone=true;const score=p.attrs.learning*p.classMod.eduQ+p.classMod.network*0.3+p.skills.study*0.2+rnd(-8,18);if(score>=62){p.edu="大学";p.flags.uni=true;const c=countryById(p.country);const big=c.cities[0];if(p.city!==big.name&&chance(.7))startTravel(p,big.name,"上大学");return "🎓 考上大学了！全家高兴得一晚上没睡。";}if(score>=45&&chance(.4)){return "📖 高考没考上理想的学校，决定复读一年。";}p.eduYears=0;return "📖 高考落榜了。";}},
+ {id:"gaokao",when:p=>ageYears(p)>=17.9&&ageYears(p)<18.2&&!p.flags.gaokaoDone,major:true,pp:()=>1,run(p){p.flags.gaokaoDone=true;const score=p.attrs.learning*p.classMod.eduQ+p.classMod.network*0.3+p.skills.study*0.2+rnd(-8,18);if(score>=62){p.edu="大学";p.flags.uni=true;const c=countryById(p.country);const big=c.cities[0];if(p.city!==big.name&&chance(.9))startTravel(p,big.name,"上大学");return "🎓 考上大学了！全家高兴得一晚上没睡。";}if(score>=45&&chance(.4)){return "📖 高考没考上理想的学校，决定复读一年。";}p.eduYears=0;return "📖 高考落榜了。";}},
  {id:"army",when:p=>ageYears(p)>=18&&ageYears(p)<23&&!p.flags.armyDone,pp:p=>0.001+p.attrs.fitness/100*0.003+p.traits.risk/100*0.002,run(p){p.flags.armyDone=true;p.flags.inArmy=rint(18,24);p.job="军人";p.attrs.fitness=clamp(p.attrs.fitness+15,0,100);return "🎖 他去当兵了，剃了寸头，背上行囊去了军营。";}},
  {id:"findjob",when:p=>ageYears(p)>=18&&!p.job&&!p.flags.inArmy&&!p.flags.inPrison,pp:p=>0.01,run(p){getJob(p);return null;}},
  {id:"promote",when:p=>!!p.job&&p.job!=="军人",pp:p=>0.0015+p.traits.diligent/100*0.002,run(p){p.salary=Math.round(p.salary*1.2);return `📈 工作表现出色，升职加薪了，月薪涨到${fmtMoney(p.salary)}。`;}},
@@ -1005,9 +1526,9 @@ const EVENTS=[
  {id:"impulse_quit",when:p=>!!p.job&&p.job!=="军人",pp:p=>impulse(p)*0.0012,run(p){const j=p.job;p.job=null;p.salary=0;return `😤 一气之下把工作辞了（${j}），当时痛快，晚上就开始慌。`;}},
  {id:"gamble",when:p=>ageYears(p)>=18,pp:p=>impulse(p)*0.0015,run(p){const c=rint(1000,20000);if(chance(.4)){p.money+=c;return `🎰 赌了一把，居然赢了${fmtMoney(c)}。`;}p.money=Math.max(0,p.money-c);p.debt+=chance(.5)?c:0;return `🎰 赌输了${fmtMoney(c)}，越输越想翻本。`;}},
  {id:"parent_expect",when:p=>ageYears(p)>=6&&ageYears(p)<23,pp:p=>0.003,run(p){const f=findNPC("father")||findNPC("mother");if(!f)return null;const exp=p.rels[f.id]?p.rels[f.id].expect:60;if(exp>70&&p.attrs.learning<55){p.attrs.mood=clamp(p.attrs.mood-8,0,100);p.anxiety=clamp(p.anxiety+10,0,100);return `😰 ${f.name}又拿别人家的孩子跟他比，期待压得他喘不过气。`;}return `😊 ${f.name}说：“尽力就好，爸妈不逼你。”他心里暖了一下。`;}},
- {id:"study_abroad",when:p=>ageYears(p)>=18&&ageYears(p)<26&&(p.edu==="大学"||p.attrs.learning>70),pp:p=>0.001+p.classMod.network/100*0.002,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"留学")){p.edu="大学";return null;}return null;}},
- {id:"migrate",when:p=>ageYears(p)>=25&&ageYears(p)<45,pp:p=>0.0006,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"移民定居")){return null;}return null;}},
- {id:"travel_trip",when:p=>ageYears(p)>=18&&p.money>8000,pp:p=>0.002,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"旅行")){p.attrs.mood=clamp(p.attrs.mood+12,0,100);return null;}return null;}},
+ {id:"study_abroad",when:p=>ageYears(p)>=18&&ageYears(p)<26&&!p.flags.studiedAbroad&&(p.edu==="大学"||p.attrs.learning>70),pp:p=>0.0001+p.classMod.network/100*0.0002,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"留学")){p.flags.studiedAbroad=true;p.edu="大学";return null;}return null;}},
+ {id:"migrate",when:p=>ageYears(p)>=25&&ageYears(p)<45&&!p.flags.migrated,pp:p=>0.00006,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"移民定居")){p.flags.migrated=true;return null;}return null;}},
+ {id:"travel_trip",when:p=>ageYears(p)>=18&&p.money>8000,pp:p=>0.0002,run(p){const c=pick(COUNTRIES.filter(x=>x.id!==p.country));const big=c.cities[0];if(startTravel(p,big.name,"旅行")){p.attrs.mood=clamp(p.attrs.mood+12,0,100);return null;}return null;}},
 ];
 function crimeHit(p,what){
   p.flags.criminal=true; p.attrs.character=clamp(p.attrs.character-8,0,100);
@@ -1016,15 +1537,215 @@ function crimeHit(p,what){
     logEvt(`🚔 ${p.name}因为${what}被抓了，判了${yrs}年。`,true);return `🚔 因为${what}被警察带走了。`;}
   return `🥊 ${what}，差点被抓，逃过一劫。`;
 }
+/* ============================================================================
+   engine.js — 一方小世界 V3 · C1 关键事件类别保证 + K1 因果链 + F1 中间步骤
+   ----------------------------------------------------------------------------
+   领地：只写本文件提供的函数、事件与常量 + engine.INTEGRATION.md 里列出的
+   替换补丁（C1-01～C1-05、K1-01～K1-06、F1-01～F1-08、X1/X2）。绝不改
+   旅行/移民的触发概率（总协调在合并后统一做 C1 设计修正）；绝不碰
+   communityMonthly 的 q.role.startsWith 崩溃（修复轮的事）；不加跳时间
+   按钮，不加固定时间表，不改新人生从婴儿开始的流程；主人公永远不知道
+   自己被创造、被观察；内心独白与闪回只给观众看。
+
+   只用文件里已有的全局工具：$、rnd、rint、pick、clamp、chance、fmtMoney、
+   S、focus、ageYears、dayCount、worldDate、logEvt、addTrauma、relDelta、
+   mkAct、EVENTS、LOC_X。函数声明会提升，插在 rollDailyEvents() 之前即可
+   （见 apply-engine.py 的模块插入锚点）。
+
+   真实世界标尺（每个判断先问“真实世界会这样吗”）：
+   - 宠物不是按“触发次数”长大的，是按真实年月长大的，12–14 岁老死；
+     一辈子养 4–5 只宠物是正常的，一辈子一只都没养过是不正常的。
+   - 被骗和捡钱是真实世界里人人都会撞见的事：电话诈骗、熟人借钱不还、
+     买到假货、投资骗局、中奖短信；路上捡到钱、旧衣服口袋里翻出钱。
+     钱不会凭空出现也不会凭空消失，每一笔都有来处和去处。
+   - 关键类别不是“安排”出来的，是概率兜底：窗口过半没撞见才把概率
+     提一倍，快关了还没撞见提五倍——事情还是现场长出来的，没撞见就
+     是没撞见，不会凭空写进人生里。
+   - 因果不是旁白腔，是来龙去脉：裁员是因为经济衰退/行业下坡，搬家是
+     因为地震震坏了房子，结婚是因为处了这么久，孩子是因为成了家。
+   - 喂奶之前要先冲奶，吃饭之前要先摆碗筷，上学之前要先背上书包出门，
+     坐车不是一睁眼就到了——事情都有中间步骤。
+   - 夜里在火车上的人会打盹，没人能连着几天不睡觉；6 岁孩子不会独自
+     坐 5 天火车；上课开始人就已经在学校里，不是 9 点还在半路上。
+
+   内容一览：
+     C1_CATS / c1CatOf / c1Seen / c1Mark / c1Boost —— 8 类关键事件与窗口兜底
+     c1MarkFromLog —— 灾害/搬家不在 EVENTS 里，从日志文本认进类别记录
+     C1_EVENTS —— 新增事件：scam（被骗）、found_money（捡钱）
+     noteCause / causeText / K1_CAUSES —— K1 因果链（11 个真实节点）
+     travelPx —— F1 坐车时人在旅程上的位置（208→1400）
+   替换补丁（代码在 apply-engine.py，说明在 engine.INTEGRATION.md）：
+     C1-01 宠物按真实年月长大（pet_adopt/pet_old 替换）
+     C1-02 （本文件内的 C1_EVENTS + EVENTS.push）
+     C1-03/K1-02 rollDailyEvents 替换（窗口兜底 + 类别记录 + 因果节点）
+     C1-04 logEvt 补一笔类别记录（灾害/搬家）
+     C1-05 processDay 里宠物年龄按真实年月刷新
+     K1-01 （本文件内的 noteCause/causeText/K1_CAUSES）
+     K1-03 quakeHit 搬家记一笔因果
+     K1-04 #causebar（HTML + CSS + renderNowNext）
+     K1-05 haveChild 出生记一笔因果
+     K1-06 marry() 结婚记一笔因果
+     F1-01 babyDecide 喂奶先冲奶
+     F1-02 tickActivity 换地方块替换（上学到校即落位 + 坐车按旅程走）
+     F1-03 decideActivity 上学先背上书包出门
+     F1-04 decideActivity 夜里在车上打盹（+ 饿/累到极限时车上打盹）
+     F1-05 hourlyStep 坐车位置每小时推进
+     F1-06 startTravel 记 totalDays/startMin + 出发时清掉旧活动 + 未成年人/坐牢/当兵守门
+     F1-07 decideActivity 饿了先吃分支：地点跟着人实际在哪走，病了喝粥只对正餐
+     F1-08 eatAct 吃饭先准备（洗手、摆碗筷、端菜上桌），再吃
+     X1 未成年人长途旅行必须有监护人同行（F1-06 + processDay 到达时父母同迁）
+     X2 上学 px 滞后（F1-02 落位 + F1-03 出门步骤）
+   ========================================================================== */
+
+/* ---------- C1：8 类关键人生事件与窗口兜底 ----------
+   8 类：灾害 / 重病 / 失恋 / 搬家 / 宠物 / 被骗 / 捡钱 / 意外。
+   灾害、搬家不在 EVENTS 里（在 processMonth/processDay），不参与概率兜底，
+   只记类别（c1MarkFromLog）；旅行/移民事件的触发概率保持底本原值，不动。
+   窗口 [lo,hi] 是“这辈子通常会撞见的年龄段”：过半没撞见 ×2，快关（最后
+   10%）还没撞见 ×5。只提概率，不凭空安排。 */
+const C1_CATS={
+  disaster:{win:[0,70],evs:[]},
+  serious_ill:{win:[0,70],evs:["ill","ill_process"]},
+  breakup:{win:[13,40],evs:["love_betray","divorce"]},
+  move:{win:[0,70],evs:[]},
+  pet:{win:[8,70],evs:["pet_adopt"]},
+  scam:{win:[16,70],evs:["scam"]},
+  found_money:{win:[6,70],evs:["found_money"]},
+  accident:{win:[0,70],evs:["accident"]},
+};
+function c1CatOf(evId){for(const k in C1_CATS)if(C1_CATS[k].evs.includes(evId))return k;return null;}
+function c1Seen(p,cat){return !!(p.flags&&p.flags.catSeen&&p.flags.catSeen[cat]);}
+function c1Mark(p,cat){if(!p.flags)p.flags={};if(!p.flags.catSeen)p.flags.catSeen={};p.flags.catSeen[cat]=1;}
+function c1Boost(p,cat,pr){
+  if(!cat||c1Seen(p,cat))return pr;
+  const w=C1_CATS[cat].win, age=ageYears(p);
+  if(age<w[0]||age>w[1])return pr;
+  const mid=w[0]+(w[1]-w[0])/2, near=w[1]-(w[1]-w[0])*0.1;
+  if(age>=near)return pr*5;
+  if(age>=mid)return pr*2;
+  return pr;
+}
+/* 灾害 / 搬家不在 EVENTS 里，从日志文本认进类别记录（只认，不改概率）。 */
+function c1MarkFromLog(p,text){
+  if(!p||!p.flags||!text)return;
+  if(/地震|洪水|台风|爆发了/.test(text))c1Mark(p,"disaster");
+  if(/全家搬去了|到了.+（(?!旅行）)/.test(text))c1Mark(p,"move"); // “搬去了”单用会误认“搬梯子”，须带“全家”；“到了X（旅行）”是往返旅行，不算搬家
+}
+
+/* ---------- C1：新增事件——被骗 / 捡钱 ----------
+   底本里这两类根本不存在。被骗的钱从他自己的钱和家里的钱里扣（扣到
+   没钱为止，多的那部分是“差点被骗”）；捡到的钱小额揣兜里，大额交派出所。 */
+const C1_EVENTS=[
+ {id:"scam",when:p=>ageYears(p)>=16,pp:()=>0.001,run(p){
+   const kind=pick(["电话诈骗","熟人借钱不还","买到假货","投资骗局","中奖短信"]);
+   let loss=kind==="电话诈骗"?rint(500,20000):kind==="熟人借钱不还"?rint(1000,10000):kind==="买到假货"?rint(200,3000):kind==="投资骗局"?rint(2000,30000):rint(100,1000);
+   const avail=p.money+Math.max(0,p.familyMoney)*0.5;
+   if(avail<=0)return "📵 差点被骗：接到诈骗电话，对方让他转账，还好卡里没钱，他挂了电话。";
+   loss=Math.min(loss,Math.round(avail));
+   const text=kind==="电话诈骗"?`📵 接到诈骗电话，对方说得有鼻子有眼，他信了，转了${fmtMoney(loss)}过去，才发现被骗了。`
+     :kind==="熟人借钱不还"?`🤝 熟人找他借了${fmtMoney(loss)}，说好下个月还，结果人找不到了，电话也不接。`
+     :kind==="买到假货"?`🛍 花${fmtMoney(loss)}买了个东西，拿回来才发现是假的，找卖家理论，人家不认账。`
+     :kind==="投资骗局"?`📈 有人拉他投一个“稳赚不赔”的项目，他把${fmtMoney(loss)}投了进去，平台一夜之间没了。`
+     :`📱 收到一条“你中奖了”的短信，点了链接，交了${fmtMoney(loss)}的“手续费”，奖品当然没有。`;
+   const fromSelf=Math.min(p.money,loss); p.money-=fromSelf; p.familyMoney=Math.max(0,p.familyMoney-(loss-fromSelf));
+   p.anxiety=clamp(p.anxiety+15,0,100); p.attrs.mood=clamp(p.attrs.mood-10,0,100);
+   if(loss>=5000&&chance(.5))addTrauma(p,"被骗了一大笔钱",5);
+   return text;
+ }},
+ {id:"found_money",when:p=>ageYears(p)>=6,pp:()=>0.0012,run(p){
+   const amt=rint(5,500);
+   if(chance(.3)){p.money+=amt;return `💵 在旧衣服口袋里翻出了${fmtMoney(amt)}，是以前随手塞进去的，早就忘了。`;}
+   if(amt>=200)return `💵 路上捡到${fmtMoney(amt)}，在原地等了半天没人来认领，交到了派出所，警察表扬了他一句。`;
+   p.money+=amt;return `💵 路上捡到${fmtMoney(amt)}，四下看看没人，揣兜里了。`;
+ }},
+];
+EVENTS.push(...C1_EVENTS);
+
+/* ---------- K1：因果链 ----------
+   在 11 个真实节点记一笔来龙去脉（世界口吻，只给观众看，主人公本人
+   不知道）。causeChain 只留最近 6 条；同一条 4 天内不重复记；4 天过期。
+   #causebar 是 #nowNext 下面的一条静态文字条（margin-top:10px，不用
+   position:absolute，不盖画面）。 */
+function noteCause(p,text){
+  if(!p||!text)return;
+  if(!p.causeChain)p.causeChain=[];
+  const day=dayCount();
+  const last=p.causeChain[p.causeChain.length-1];
+  if(last&&last.text===text&&day-last.day<=4)return; // 同一条 4 天内不重复记
+  p.causeChain.push({text,day});
+  if(p.causeChain.length>6)p.causeChain.shift();
+}
+function causeText(p){
+  if(!p||!p.causeChain||!p.causeChain.length)return "";
+  const last=p.causeChain[p.causeChain.length-1];
+  if(dayCount()-last.day>4)return ""; // 4 天过期
+  return last.text;
+}
+/* K1 11 个节点（rollDailyEvents 里统一记；marry/haveChild/quake-move
+   另有补丁在自己的函数里记，见 INTEGRATION.md K1-03/K1-05/K1-06）：
+   fired / promote / ill / love_betray / divorce / startup_fail /
+   gaokao / pet_old（老死）/ baby（怀孕）/ marry / haveChild（出生）/
+   quake-move（搬家）——其中 baby（怀孕）与 haveChild（出生）同属
+   “添丁”一个节点，marry 与 haveChild 的记法见各自补丁。 */
+const K1_CAUSES={
+ fired(p){
+   if(S.world.recession>0)return "经济衰退，公司裁员，轮到了他。";
+   if(p.industry&&S.world.era.decline.includes(p.industry))return `${p.industry}行业在走下坡，公司裁员，轮到了他。`;
+   return "公司效益不好，裁员轮到了他。";
+ },
+ promote(){return "这几年干得扎实，升职加薪是水到渠成。";},
+ ill(){return "身体早就亮红灯了，这场大病是攒出来的。";},
+ love_betray(p,text,ctx){const g=ctx.partnerBefore?S.people[ctx.partnerBefore]:null;return `和${g?g.name:"恋人"}早就有裂痕了，这次彻底断了。`;},
+ divorce(p,text,ctx){const sp=ctx.spBefore?S.people[ctx.spBefore]:null;return `婚后的矛盾越攒越多，和${sp?sp.name:"配偶"}最后还是散了。`;},
+ startup_fail(){return "生意没做起来，投进去的钱打了水漂，还欠了一屁股债。";},
+ gaokao(p,text){
+   if(!text)return null;
+   if(text.includes("考上大学"))return "十几年苦读，就为了这一场考试——他考上了大学。";
+   if(text.includes("复读"))return "没考上理想的学校，他决定再读一年。";
+   if(text.includes("落榜"))return "高考落榜了，十几年的书好像白读了，但日子还得过。";
+   return null;
+ },
+ baby(p,text,ctx){
+   if(p.pregnant===9&&ctx.pregBefore!==9)return "她怀孕了，九个月后，家里要添个孩子。";
+   return null;
+ },
+};
+
+/* ---------- F1：坐车时人在旅程上的位置 ----------
+   世界宽 1600，旅程从 px 208 走到 px 1400，按出发后真实经过的分钟数算
+   （不是按 daysLeft——逐小时推进时 daysLeft 只在 processDay 里减，午夜
+   会归零；分钟数在任何推进方式下都单调）。旧存档的旅程没有 startMin，
+   回退到 daysLeft 算法。 */
+function travelPx(p){
+  const t=p.travel; if(!t)return S.px;
+  if(t.stay)return S.px; // R3：旅行住下期间不是在路上，位置由普通活动逻辑管
+  const total=Math.max(1,t.totalDays||t.daysLeft||1);
+  let prog;
+  if(t.startMin!=null){
+    prog=clamp(Math.max(0,S.minutes-t.startMin)/(total*1440),0,1);
+  }else{
+    const elapsedH=(total-(t.daysLeft||0))*24+worldDate().h;
+    prog=clamp(elapsedH/(total*24),0,1);
+  }
+  return Math.round(208+prog*(1400-208));
+}
+
 function rollDailyEvents(p){
   let fired=0;
   for(const ev of EVENTS){
     if(fired>=2)break;
     if(!ev.when(p))continue;
-    const pr=typeof ev.pp==="function"?ev.pp(p):(ev.p||0);
+    let pr=typeof ev.pp==="function"?ev.pp(p):(ev.p||0);
+    pr=c1Boost(p,c1CatOf(ev.id),pr); // C1：关键类别窗口兜底——没撞见的类别，窗口过半概率×2，快关×5；只提概率，不凭空安排
     if(Math.random()<pr){
+      const ctx={petBefore:(ev.id==="pet_old"&&p.pet)?{name:p.pet.name,age:Math.floor((dayCount()-(p.pet.bornDay||dayCount()))/365)}:null,
+        spBefore:p.spouse, chBefore:p.children.length, pregBefore:p.pregnant, partnerBefore:p.partner};
       const text=ev.run(p);
-      if(text){logEvt(text,ev.major);fired++;if(ev.major){pauseForEvent(text);}}
+      // K1：因果链——在真实节点记一笔来龙去脉（世界口吻，只给观众看）
+      const kc=K1_CAUSES[ev.id];
+      if(kc){const ct=kc(p,text,ctx);if(ct)noteCause(p,ct);}
+      if(ev.id==="pet_old"&&ctx.petBefore&&!p.pet)noteCause(p,`养了${ctx.petBefore.age||"十几"}年的${ctx.petBefore.name}老死了，陪了他这么多年，终于还是走了。`);
+      if(text){const cat=c1CatOf(ev.id);if(cat)c1Mark(p,cat);logEvt(text,ev.major);fired++;if(ev.major){pauseForEvent(text);}}
     }
   }
 }
@@ -1116,7 +1837,9 @@ function communityMonthly(){
   // 店铺换老板
   if(chance(.03)){const old=get(com.shopOwner);const nw=makeCommunityNPC("shopowner",rint(30,50),"早餐店老板");nw.name=uniqName(nw.sex);com.list.push(nw.id);com.shopOwner=nw.id;logEvt(`🏪 楼下早餐店换老板了，现在是${nw.name}在经营，味道跟以前不太一样。`);}
   // 有人搬走、有人搬进来（社区新陈代谢）
-  if(chance(.05)){const leavers=com.list.filter(id=>{const q=get(id);return q&&q.alive&&q.role.startsWith("neighbor")});if(leavers.length){const lv=get(pick(leavers));lv.alive=false;lv.moved=true;lv.deathDay=dayCount();lv.deathCause="搬走";logEvt(`🚚 ${lv.name}一家搬走了，房子空了出来。`);const nw=makeCommunityNPC("neighborNew",rint(25,45),pick(["程序员","快递员","老师","护士"]));nw.name=uniqName(nw.sex);com.list.push(nw.id);logEvt(`🏠 新邻居搬进来了：${nw.name}，${nw.job}，${nw.quirk}。`);}}
+  // V3-fix：role 可能没有——继承人被 succession() 选中后会 delete heir.role，
+  // 之后这里再对他做 role.startsWith 会抛错崩溃，所以一律加 (role||"") 守卫。
+  if(chance(.05)){const leavers=com.list.filter(id=>{const q=get(id);return q&&q.alive&&(q.role||"").startsWith("neighbor")});if(leavers.length){const lv=get(pick(leavers));lv.alive=false;lv.moved=true;lv.deathDay=dayCount();lv.deathCause="搬走";logEvt(`🚚 ${lv.name}一家搬走了，房子空了出来。`);const nw=makeCommunityNPC("neighborNew",rint(25,45),pick(["程序员","快递员","老师","护士"]));nw.name=uniqName(nw.sex);com.list.push(nw.id);logEvt(`🏠 新邻居搬进来了：${nw.name}，${nw.job}，${nw.quirk}。`);}}
   // 社区里有人去世
   if(chance(.02)){const olds=com.list.filter(id=>{const q=get(id);return q&&q.alive&&ageYears(q)>70});if(olds.length){const d=get(pick(olds));killPerson(d,"年老去世");logEvt(`🕯 社区里的${d.name}去世了，楼道里摆起了花圈。`);}}
 }
@@ -1308,7 +2031,7 @@ const DEPTH_EVENTS=[
  {id:"rain_wet",when:p=>S.world.weather==="雨",pp:()=>0.004,run(p){p.attrs.mood=clamp(p.attrs.mood-2,0,100);return "🌧 出门没带伞，淋了一身雨，鞋里全是水。";}},
  {id:"heat",when:p=>S.world.temp>=30,pp:()=>0.002,run(p){if(chance(.2)){p.attrs.health=clamp(p.attrs.health-6,0,100);return "🥵 天太热了，中暑了，头晕目眩，赶紧找了个阴凉地坐下。";}return "🥵 热得汗流浃背，衣服都湿透了。";}},
  {id:"cold",when:p=>S.world.temp<=2,pp:()=>0.002,run(p){p.attrs.mood=clamp(p.attrs.mood-2,0,100);return "🥶 冷得直哆嗦，手都冻僵了。";}},
- {id:"bland",when:p=>true,pp:()=>0.01,run(p){return pick(["今天没什么特别的，就是普通的一天。","起床、上学、吃饭、睡觉，平平淡淡的一天。","今天和昨天差不多，没什么事发生。","平淡的一天，但平淡本身就是生活。"]);}},
+ {id:"bland",when:p=>true,pp:()=>0.01,run(p){const opts=ageYears(p)<3?["今天没什么特别的，就是普通的一天。","今天和昨天差不多，没什么事发生。","平淡的一天，但平淡本身就是生活。"]:["今天没什么特别的，就是普通的一天。","起床、上学、吃饭、睡觉，平平淡淡的一天。","今天和昨天差不多，没什么事发生。","平淡的一天，但平淡本身就是生活。"];return pick(opts);}},
  {id:"rumor",when:p=>ageYears(p)>=10,pp:()=>0.002,run(p){const r=pick(["听说邻居家出事了，也不知道是真是假。","听说远方有个地方地震了，消息传过来已经变了样。","听人说学校要换校长了，传得有鼻子有眼的。","听说有个同学家里很有钱，也不知道谁传出来的。"]);return `👂 ${r}`;}},
  {id:"rep_down",when:p=>p.flags.criminal,pp:()=>0.002,run(p){p.rep=clamp(p.rep-5,0,100);return "👀 他做的事在学校和社区里传开了，别人看他的眼光变了，走在路上都觉得有人在议论。";}},
  {id:"rep_up",when:p=>p.attrs.character>75,pp:()=>0.0015,run(p){p.rep=clamp(p.rep+4,0,100);return "👍 邻居们都说这孩子人品好，有事都愿意找他帮忙。";}},
@@ -1347,8 +2070,8 @@ const DEPTH_EVENTS2=[
  {id:"rel_wear",when:p=>true,pp:()=>0.002,run(p){const ids=Object.keys(p.rels).filter(id=>S.people[id]&&S.people[id].role==="friend");if(!ids.length)return null;const id=pick(ids);const r=p.rels[id];if(r.v>40){r.v=clamp(r.v-6,0,100);if(r.v<30)r.status="生疏";return `🍂 和${S.people[id].name}好久没联系了，再好的朋友，不维护也会淡。`;}return null;}},
  {id:"marriage_wear",when:p=>!!p.spouse,pp:()=>0.001,run(p){const sp=S.people[p.spouse];if(!sp)return null;return `🏠 和${sp.name}结婚多年，激情早就退去了，剩下的更多是习惯和责任。`;}},
  {id:"period",when:p=>p.sex==="女"&&ageYears(p)>=12&&ageYears(p)<50,pp:()=>0.02,run(p){p.attrs.mood=clamp(p.attrs.mood-4,0,100);p.attrs.health=clamp(p.attrs.health-1,0,100);return "🌸 生理期来了，肚子疼，什么都不想干。";}},
- {id:"pet_adopt",when:p=>ageYears(p)>=8&&!p.pet,pp:()=>0.001,run(p){p.pet={kind:pick(["猫","狗"]),name:pick(["阿黄","团团","豆豆","小黑","花花","旺财"]),age:0};return `🐾 他养了一只${p.pet.kind}，取名叫${p.pet.name}，每天放学回家它都在门口等。`;}},
- {id:"pet_old",when:p=>!!p.pet,pp:()=>0.001,run(p){p.pet.age+=1;if(p.pet.age>=12&&chance(.3)){const nm=p.pet.name;p.pet=null;addTrauma(p,"宠物去世",4);return `🐾 ${nm}老死了，埋在了后院那棵树下，他哭了很久。`;}return `🐾 ${p.pet.name}已经${p.pet.age}岁了，走路都慢了。`;}},
+ {id:"pet_adopt",when:p=>ageYears(p)>=8&&!p.pet,pp:()=>0.003,run(p){p.pet={kind:pick(["猫","狗"]),name:pick(["阿黄","团团","豆豆","小黑","花花","旺财"]),age:0,bornDay:dayCount(),lifespan:rint(12,14)};return `🐾 他养了一只${p.pet.kind}，取名叫${p.pet.name}，每天放学回家它都在门口等。`;}},
+ {id:"pet_old",when:p=>!!p.pet,pp:()=>0.003,run(p){const age=(dayCount()-(p.pet.bornDay||dayCount()))/365;p.pet.age=Math.floor(age);const life=p.pet.lifespan||13;if(age>=life+1||(age>=life&&chance(.6))){const nm=p.pet.name;const ag=Math.floor(age);p.pet=null;addTrauma(p,"宠物去世",4);return `🐾 ${nm}老死了，${ag}岁了，埋在了后院那棵树下，他哭了很久。`;}if(age>=life-1)return `🐾 ${p.pet.name}已经${Math.floor(age)}岁了，走路都慢了，眼睛也花了。`;return `🐾 ${p.pet.name}已经${Math.floor(age)}岁了，走路都慢了。`;}},
  {id:"faith_pray",when:p=>p.faith!=="无"&&p.attrs.mood<45,pp:()=>0.004,run(p){p.attrs.mood=clamp(p.attrs.mood+6,0,100);return `🙏 心里难受，他去了庙里烧了柱香，求了个平安——${p.faith==="信佛"?"佛":p.faith==="信基督"?"主":p.faith==="信祖先"?"祖先":"老天"}保佑。`;}},
  {id:"faith_limit",when:p=>p.faith!=="无"&&p.attrs.character<40,pp:()=>0.001,run(p){p.attrs.character=clamp(p.attrs.character+3,0,100);return `🙏 本来想做一件亏心事，想起${p.faith}，最后还是没做。`;}},
  {id:"art_touch",when:p=>ageYears(p)>=10,pp:()=>0.0015,run(p){return pick(["听到一首歌，听到哭了。","看完一本书，半天缓不过来。","他忽然觉得，好看的东西真的能治愈人。"]);}},
@@ -1883,12 +2606,16 @@ function skyColor(h){
   return "#5a4a7a";
 }
 /* ============ C1：镜头 + 世界拓宽到1600 ============ */
-const LOC_X={bedroom:550,living:800,kitchen:1050,study:1000,kindergarten:800,school:850,university:850,street:300,park:1300,shop:350,netcafe:800,court:1350,library:900,hospital:800,company:850,army:800,prison:800,station:800};
+const LOC_X={bedroom:550,living:800,kitchen:1050,study:1000,kindergarten:800,school:850,university:850,street:300,park:1300,shop:350,netcafe:800,court:900,library:900,hospital:800,company:850,army:800,prison:800,station:800};
 const INDOOR_LOCS=["bedroom","living","kitchen","study","kindergarten","school","university","shop","netcafe","library","hospital","company","army","prison","station"];
 function wireCamera(){
   const st=$("#stage");
   let dragging=false, lastX=0, moved=0;
-  st.addEventListener("pointerdown",e=>{dragging=true;moved=0;lastX=e.clientX;st.classList.add("dragging");try{st.setPointerCapture(e.pointerId);}catch(_){}});
+  // J1：setPointerCapture 只在拖画面时设。V2 遗留 bug：pointerdown 挂在 #stage 上，
+  // 点“回到他身边”按钮时也会 capture，click 事件的目标就被收归 #stage，
+  // 按钮自己的 onclick 永远收不到——拖开镜头后点不回去。只在点中的不是按钮时
+  // 才 capture；拖动（从画面上起手）不受影响，点按分支（J1-6）也不受影响。
+  st.addEventListener("pointerdown",e=>{dragging=true;moved=0;lastX=e.clientX;st.classList.add("dragging");if(!e.target.closest("button")){try{st.setPointerCapture(e.pointerId);}catch(_){}}});
   st.addEventListener("pointermove",e=>{
     if(!dragging)return;
     const dx=e.clientX-lastX; lastX=e.clientX; moved+=Math.abs(dx);
@@ -1897,13 +2624,211 @@ function wireCamera(){
     $("#camHint").style.display="none";
     renderScene();
   });
-  const end=()=>{ if(!dragging)return; dragging=false; st.classList.remove("dragging"); };
+  const end=(e)=>{ if(!dragging)return; dragging=false; st.classList.remove("dragging");
+    // J1：点按（没拖动）就是在世界里伸手。真 bug 修复：旧代码在 #stage 上
+    // setPointerCapture 后，点按事件的目标被收归 #stage，挂在画面元素上的
+    // 点按处理永远收不到事件；改为在 #stage 上接 pointerup，再用
+    // elementFromPoint 按坐标找命中的东西——点中画面（#sceneHost）才算数，
+    // 点到解说条、“回到他身边”这些画框外的东西不算。setPointerCapture 保留，
+    // 拖动出界时仍需要它。
+    // 点中人物时按他此刻最需要的事办一件（pickStageInterv）；没有需要就不做。
+    // 人物没有单独热区：点的永远是“他此刻最需要的事”，不是“点中了谁的手”。
+    if(e&&moved<6&&typeof e.clientX==="number"){
+      const el=document.elementFromPoint(e.clientX,e.clientY);
+      if(el&&el.closest&&el.closest("#sceneHost")){
+        const p=focus();
+        if(p){const k=pickStageInterv(p); if(k)doInterv(k);}
+      }
+    }
+  };
   st.addEventListener("pointerup",end); st.addEventListener("pointercancel",end);
   st.addEventListener("wheel",e=>{ e.preventDefault(); S.camZoom=clamp(S.camZoom*(e.deltaY<0?1.15:0.87),1,2); S.camIdleMin=S.minutes; renderScene(); },{passive:false});
   $("#camBack").onclick=()=>{ S.camDrag=false; S.camX=S.px; $("#camBack").style.display="none"; renderScene(); };
   const sb=$("#soundBtn");
   if(sb) sb.onclick=()=>{ S.soundOn=!S.soundOn; sb.textContent=S.soundOn?"🔊 声音":"🔇 声音"; sb.classList.toggle("on",!!S.soundOn); };
 }
+/* ============================================================================
+faces.js — 一方小世界 V3 · A1 表情/肢体/身体状态 + L1 老化同一个人
+----------------------------------------------------------------------------
+领地：只写本文件提供的三个函数 + drawPerson 里 P1–P6 六处补丁（见
+faces.INTEGRATION.md）。绝不改 drawPerson 以外的函数，不加跳时间按钮，
+不加固定时间表，不改新人生从婴儿开始的流程；主人公永远不知道自己被
+创造、被观察；内心独白只给观众看。
+
+只用文件里已有的全局工具：clamp、ageYears、agingFeatures、dayCount、
+drawPerson、S、focus。函数声明会提升，插在 C3 drawPerson 之前即可。
+
+真实世界标尺（每个判断先问“真实世界会这样吗”）：
+- 高兴是笑弯了嘴、眉眼舒展；难过是嘴角下垂、眉头内侧抬起；生气是眉毛
+  内侧压下来、嘴抿成一条线；害怕是眼睛睁大、嘴微微张开、抱住自己；
+  累是眼皮耷拉、黑眼圈、垂着头；病了是脸发白、眼神没光、嘴唇没血色。
+- 同一个人 20 岁和 50 岁：脸宽、眼距、鼻长、唇厚、眉形是出生就定的
+  faceSeed，一辈子不变；年龄只加灰发、皱纹、眼袋、（60 岁后）驼背。
+  所以 50 岁的脸必须一眼认得出是 20 岁的那个人。
+- 旧 bug：嘴画在 y=5..11，脸底在 y=-35，嘴实际落在衣服下摆上，脸上只
+  剩两点眼睛两道眉毛——心情全靠文字。本模块把嘴修回 y≈-43（脸椭圆
+  cy=-52、ry=17 之内），并把婴儿哭脸、打哈欠的张嘴也一并修回脸上。
+
+内容一览：
+faceExpr(p,o)      状态 → 8 档表情：happy/content/neutral/sad/angry/afraid/tired/sick
+faceHeadSVG(p,o,ctx) 表情 + faceSeed + 年龄 → 整颗头的 SVG（脸/发/眼/眉/鼻/嘴/
+                     腮红/黑眼圈/汗/惨白/皱纹/眼泪）；眼睛包在 <g class="amb-eye">
+                     里，生命感模块的眨眼改包眼睛组，不要再锚旧眼睛行
+sameFaceCheck(p,a,b) 同一人 a 岁 vs b 岁并排：faceSeed 是否相同、两张 SVG、
+                     两份 agingFeatures，供验证“认得出同一个人”
+============================================================================ */
+
+/* ---------- A1：表情判定（8 档） ----------
+   优先级是真实世界的轻重：打哈欠一定是累；病了盖过累（病着的人也累，
+   但先看到的是病容）；累盖过心情（累到极点笑不出来）；悲伤盖过焦虑
+   （刚失去亲人的人首先是难过）；焦虑分两路——心情已经很差就是生气，
+   心情还行就是害怕；最后才是心情本身的高兴/还行/平常/难过。
+   阈值与验证矩阵一一对应（见 INTEGRATION.md 的断言表）。 */
+function faceExpr(p, o){
+  o=o||{};
+  if(o.micro&&o.micro.mouth==="yawn") return "tired"; // 打哈欠：一定是累
+  const A=p.attrs||{};
+  const mood=(A.mood==null?55:A.mood), en=(A.energy==null?80:A.energy), hp=(A.health==null?80:A.health);
+  const anx=p.anxiety||0, grief=p.grief||0;
+  if(hp<40||p.illness) return "sick";      // 病了：健康<40（或有 illness），脸惨白
+  if(en<25) return "tired";                // 累：精力<25，黑眼圈、眼皮耷拉
+  if(grief>=50) return "sad";              // 悲伤>=50：首先是难过，盖过心情分
+  if(anx>=70) return mood<35?"angry":"afraid"; // 焦虑>=70：心情差→生气，心情还行→害怕
+  if(mood>=80) return "happy";             // 高兴
+  if(mood>=60) return "content";           // 还行，心情不错
+  if(mood<=30) return "sad";               // 难过
+  return "neutral";                        // 平常
+}
+
+/* ---------- A1+L1：整颗头 ----------
+   坐标系与 drawPerson 的 <g> 完全一致（原点在脚底，脸中心 cy=-52）。
+   脸：椭圆 rx=faceW/2（13–16，随种子）、ry=17——脸宽是身份锚点，20 岁
+   和 50 岁必须同一个 rx。肤色不再自己算，用 agingFeatures 给的
+   skinTone（晒黑 + 年龄变暗都算进去了），病了才另盖一层惨白。
+   头发：发色按年龄渐灰（agingFeatures 的 grey 梯度），眉毛跟着发色走，
+   50 岁眉毛就是灰的——这也是“同一个人”的证据之一。
+   眼睛：包在 <g class="amb-eye"> 里。生命感模块要做眨眼，改包这个组；
+   不要再锚旧的两个眼睛 circle（P4 已把它们换掉）。
+   眉形（出生定的种子，一辈子不变）：平=直眉，浓=粗眉，淡=细眉半透明，
+   挑=眉梢上扬；表情只改眉毛的角度/高低，不改眉形本身。
+   鼻子：长度=种子 nose（5–9），画一道短短的鼻影；嘴唇厚度=种子 lip，
+   画进嘴的半宽（4–7），嘴唇厚的人笑起来嘴也更宽。
+   嘴：y≈-43，脸椭圆（-69..-35）之内。哭/怕/打哈欠是张开的嘴（深色椭圆），
+   其余是线条嘴。 */
+function faceHeadSVG(p, o, ctx){
+  o=o||{}; ctx=ctx||{};
+  const fs=p.faceSeed||{eyeGap:11,faceW:28,nose:7,lip:11,brow:"平"};
+  const rx=fs.faceW/2, eg=fs.eyeGap/2;
+  const skin=ctx.skin||"#f2c9a0", hair=ctx.hair||"#2b2620";
+  const af=ctx.af||(typeof agingFeatures==="function"?agingFeatures(p):null);
+  const A=p.attrs||{};
+  const mood=(A.mood==null?55:A.mood), en=(A.energy==null?80:A.energy), hp=(A.health==null?80:A.health);
+  const expr=faceExpr(p,o);
+  const gx=o.gaze?o.gaze.x:0, gy=o.gaze?o.gaze.y:0;
+  const lipW=Math.max(4,Math.min(7,fs.lip/2)); // 嘴半宽：唇厚画进嘴里
+  const noseL=fs.nose;                          // 鼻长：5–9
+
+  // 脸 + 头发（发色=年龄，眉毛稍后跟着发色）
+  let s=`<ellipse cx="0" cy="-52" rx="${rx}" ry="17" fill="${skin}"/>`;
+  s+=`<path d="M-${rx},-56 a${rx},17 0 0 1 ${rx*2},0 l0,-6 l-${rx*2},0 z" fill="${hair}"/>`;
+
+  // 眼睛：按表情画。累/病是半闭的眼（短横线），怕是睁大（r=2.6），
+  // 其余是圆点。整组包进 amb-eye，眨眼改包这个组。
+  let eyes="";
+  if(expr==="tired"||expr==="sick"){
+    eyes=`<line x1="${-eg-2}" y1="-52" x2="${-eg+2}" y2="-52" stroke="#2b2620" stroke-width="1.8" stroke-linecap="round"/><line x1="${eg-2}" y1="-52" x2="${eg+2}" y2="-52" stroke="#2b2620" stroke-width="1.8" stroke-linecap="round"/>`;
+  }else if(expr==="afraid"){
+    eyes=`<circle cx="${-eg+gx}" cy="${-52+gy}" r="2.6" fill="#2b2620"/><circle cx="${eg+gx}" cy="${-52+gy}" r="2.6" fill="#2b2620"/>`;
+  }else{
+    eyes=`<circle cx="${-eg+gx}" cy="${-52+gy}" r="2" fill="#2b2620"/><circle cx="${eg+gx}" cy="${-52+gy}" r="2" fill="#2b2620"/>`;
+  }
+  s+=`<g class="amb-eye">${eyes}</g>`;
+
+  // 眉毛：眉形是种子（粗细/挑不挑一辈子不变），表情只改角度和高低。
+  // 生气眉头往下压，难过眉头往上抬，害怕整条眉毛抬高，累了眉毛耷拉。
+  const browW=fs.brow==="浓"?2.2:fs.brow==="淡"?1:1.4;
+  const browOp=fs.brow==="淡"?0.55:1;
+  const browY=expr==="afraid"?-58:expr==="tired"?-55:expr==="happy"?-55:-56;
+  const inY=expr==="angry"?browY+2.5:expr==="sad"?browY-2:browY;   // 内侧（近鼻）端
+  const outY=expr==="angry"?browY-1:expr==="sad"?browY:fs.brow==="挑"?browY-2:browY; // 外侧端
+  const brow=(cx)=>`<line x1="${cx-2.5}" y1="${cx<0?outY:inY}" x2="${cx+2.5}" y2="${cx<0?inY:outY}" stroke="${hair}" stroke-width="${browW}" opacity="${browOp}" stroke-linecap="round"/>`;
+  s+=brow(-eg)+brow(eg);
+
+  // 鼻子：一道短鼻影，长度跟种子 nose 走（5–9），鼻尖不碰到嘴。
+  s+=`<path d="M0,-50 q${(noseL*0.25).toFixed(1)},${(noseL*0.45).toFixed(1)} -1,${(noseL*0.55).toFixed(1)}" stroke="#c09a78" stroke-width="1" fill="none" stroke-linecap="round"/>`;
+
+  // 嘴：y≈-43，脸椭圆之内（旧嘴在 y=5..11，是衣服下摆，已修掉）。
+  const crying=expr==="sad"&&((p.grief||0)>=50||mood<=20);
+  let mouth="";
+  if(o.micro&&o.micro.mouth==="yawn"){
+    mouth=`<ellipse cx="0" cy="-43" rx="4.5" ry="6" fill="#5a2a1a"/>`; // 打哈欠：张大嘴
+  }else if(crying){
+    mouth=`<ellipse cx="0" cy="-42" rx="3.4" ry="4.4" fill="#5a2a1a"/>`; // 哭出声：嘴张开
+  }else if(expr==="afraid"){
+    mouth=`<ellipse cx="0" cy="-43" rx="2.8" ry="3.6" fill="#5a2a1a"/>`; // 害怕：嘴微微张开
+  }else if(expr==="happy"){
+    mouth=`<path d="M-${lipW},-43 Q0,${-43+lipW*0.9} ${lipW},-43" stroke="#7a3a2a" fill="none" stroke-width="1.6" stroke-linecap="round"/>`;
+  }else if(expr==="content"){
+    mouth=`<path d="M-${(lipW*0.8).toFixed(1)},-43 Q0,${-43+lipW*0.5} ${(lipW*0.8).toFixed(1)},-43" stroke="#7a3a2a" fill="none" stroke-width="1.6" stroke-linecap="round"/>`;
+  }else if(expr==="sad"){
+    mouth=`<path d="M-${lipW},-40 Q0,-46 ${lipW},-40" stroke="#7a3a2a" fill="none" stroke-width="1.6" stroke-linecap="round"/>`;
+  }else if(expr==="angry"){
+    mouth=`<path d="M-${lipW},-42.5 L${lipW},-42.5" stroke="#7a3a2a" fill="none" stroke-width="2" stroke-linecap="round"/>`;
+  }else if(expr==="sick"){
+    mouth=`<path d="M-${(lipW*0.8).toFixed(1)},-43 Q0,-45 ${(lipW*0.8).toFixed(1)},-43" stroke="#7a3a2a" fill="none" stroke-width="1.2" stroke-linecap="round"/>`;
+  }else{ // neutral / tired：平直的嘴，累了更细一点
+    mouth=`<line x1="${-(lipW*0.8).toFixed(1)}" y1="-43" x2="${(lipW*0.8).toFixed(1)}" y2="-43" stroke="#7a3a2a" stroke-width="${expr==="tired"?1.3:1.6}" stroke-linecap="round"/>`;
+  }
+  s+=mouth;
+
+  // 腮红：很高兴才脸红，位置跟脸宽走（不画出脸外）。
+  if(mood>80) s+=`<circle cx="${-(rx*0.75).toFixed(1)}" cy="-47" r="3" fill="#f2a0a0" opacity=".7"/><circle cx="${(rx*0.75).toFixed(1)}" cy="-47" r="3" fill="#f2a0a0" opacity=".7"/>`;
+  // 黑眼圈：精力越低越深（渐变，不是 25 以下一刀切）；累和病都有。
+  if(en<25||expr==="tired"){
+    const op=(clamp((25-en)/25,0,1)*0.85+0.15).toFixed(2);
+    s+=`<path d="M-11,-42 Q-6,-39 -1,-42" stroke="#9a8a7a" fill="none" stroke-width="1.2" opacity="${op}"/><path d="M3,-42 Q8,-39 13,-42" stroke="#9a8a7a" fill="none" stroke-width="1.2" opacity="${op}"/>`;
+  }
+  // 汗：出汗，或天热（>=30 度），太阳穴挂汗珠。
+  if(p.sweat>0||(typeof S!=="undefined"&&S.world&&S.world.temp>=30))
+    s+=`<circle cx="15" cy="-60" r="3" fill="#9fd0e8"/><circle cx="-15" cy="-56" r="2.4" fill="#9fd0e8"/>`;
+  // 惨白：病了整张脸盖一层白，越病越白；贴脸画成椭圆，不超出脸廓。
+  if(hp<40) s+=`<ellipse cx="0" cy="-52" rx="${rx}" ry="17" fill="#ffffff" opacity="${hp<25?0.28:0.18}"/>`;
+  // 皱纹：30 岁起眼角先有（agingFeatures 的 wrinkles 梯度），只画眼角和
+  // 眼下两道短纹——额头纹在这么小的脸上画不下（见诚实清单）。
+  if(af&&af.wrinkles>0.15){
+    const wop=(af.wrinkles*0.55).toFixed(2);
+    s+=`<path d="M${-(rx-2)},-57 l3,2 M${-(rx-2)},-53 l3,-1 M${rx-2},-57 l-3,2 M${rx-2},-53 l-3,-1" stroke="#b09a80" stroke-width="0.9" opacity="${wop}" stroke-linecap="round"/><path d="M${-eg-2},-47 h4 M${eg-2},-47 h4" stroke="#b09a80" stroke-width="0.8" opacity="${(af.wrinkles*0.4).toFixed(2)}" stroke-linecap="round"/>`;
+  }
+  // 眼泪：哭的时候才有，挂在眼角往下淌。
+  if(crying)
+    s+=`<circle cx="${-eg}" cy="-47" r="1.8" fill="#9fd0e8"/><circle cx="${eg}" cy="-47" r="1.8" fill="#9fd0e8"/><path d="M${-eg},-45 q-1,3 0,4.5 M${eg},-45 q1,3 0,4.5" stroke="#9fd0e8" stroke-width="1.2" fill="none"/>`;
+  return s;
+}
+
+/* ---------- L1：同一人 a 岁 vs b 岁 ----------
+   克隆主人公，只改年龄（birthDay）和表情状态（中性：心情 55、精力 80、
+   健康 90、无焦虑无悲伤），faceSeed 原样不动；两张 SVG 都用 drawPerson
+   画。返回 seedSame（种子是否完全相同）、seed、svgA/svgB、两份
+   agingFeatures——验证只比脸，不比心情。 */
+function sameFaceCheck(p, ageA, ageB){
+  const mk=(age)=>{
+    const q=JSON.parse(JSON.stringify(p));
+    q.birthDay=dayCount()-age*365;
+    q.attrs=Object.assign({},q.attrs,{mood:55,energy:80,health:90});
+    q.anxiety=10; q.grief=0; q.sweat=0; q.micro=null; q.microPose=null;
+    return q;
+  };
+  const a=mk(ageA), b=mk(ageB);
+  return {
+    seedSame:JSON.stringify(a.faceSeed)===JSON.stringify(b.faceSeed),
+    seed:a.faceSeed,
+    svgA:drawPerson(a,75,210,{scale:2.0}),
+    svgB:drawPerson(b,75,210,{scale:2.0}),
+    ageA:agingFeatures(a),
+    ageB:agingFeatures(b),
+  };
+}
+
 /* ============ C3：人物重绘 —— 脸、表情、肢体、穿着、身体状态、眼神、呼吸、汗 ============ */
 function drawPerson(p, x, y, o){
   o=o||{};
@@ -1915,10 +2840,11 @@ function drawPerson(p, x, y, o){
     const mood=p.attrs.mood||50;
     const mOff=mood>70?3:mood<40?-3:0;
     const skin=(p.attrs.health||80)<40?"#e8d5c0":(p.tan>30?"#d8a878":"#f2c9a0");
-    let g=`<circle cx="${hx}" cy="${hy}" r="10" fill="${skin}"/><circle cx="${hx-4}" cy="${hy-2}" r="1.3" fill="#1f1b16"/><circle cx="${hx+4}" cy="${hy-2}" r="1.3" fill="#1f1b16"/><path d="M ${hx-3} ${hy+4} Q ${hx} ${hy+4+mOff} ${hx+3} ${hy+4}" stroke="#1f1b16" stroke-width="1.2" fill="none"/>`;
+    const babyCry=mood<35; // A1：婴儿难过会哭出声（张嘴+眼泪），不是只抿嘴
+    let g=`<circle cx="${hx}" cy="${hy}" r="10" fill="${skin}"/><circle cx="${hx-4}" cy="${hy-2}" r="1.3" fill="#1f1b16"/><circle cx="${hx+4}" cy="${hy-2}" r="1.3" fill="#1f1b16"/>`+(babyCry?`<ellipse cx="${hx}" cy="${hy+4}" rx="3" ry="3.6" fill="#5a2a1a"/><circle cx="${hx-6}" cy="${hy}" r="1.6" fill="#9fd0e8"/><circle cx="${hx+6}" cy="${hy}" r="1.6" fill="#9fd0e8"/>`:`<path d="M ${hx-3} ${hy+4} Q ${hx} ${hy+4+mOff} ${hx+3} ${hy+4}" stroke="#1f1b16" stroke-width="1.2" fill="none"/>`);
     if(o.lying)g+=`<ellipse cx="${x-6}" cy="${y-2}" rx="18" ry="7" fill="${OUTFIT_COLOR.pajamas}"/>`;
     else g+=`<ellipse cx="${x}" cy="${y-4}" rx="13" ry="10" fill="${OUTFIT_COLOR.pajamas}"/>`;
-    if(o.label)g+=`<rect x="${hx-34}" y="${hy-34}" width="68" height="16" rx="8" fill="rgba(0,0,0,0.55)"/><text x="${hx}" y="${hy-22}" font-size="11" fill="#fff" text-anchor="middle">${o.label}</text>`;
+    if(o.label)g+=`<rect x="${hx-36}" y="${hy-40+(o.labelDy||0)}" width="72" height="22" rx="8" fill="#1f1b16"/><text x="${hx}" y="${hy-24+(o.labelDy||0)}" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">${o.label}</text>`;
     return g;
   }
   const oc=OUTFIT_COLOR[o.outfit||p.outfit]||OUTFIT_COLOR.casual;
@@ -1926,23 +2852,18 @@ function drawPerson(p, x, y, o){
   const mood=A.mood, hp=A.health, en=A.energy;
   const af=(typeof agingFeatures==="function")?agingFeatures(p):null;
   const hair=af?af.hair:(age>60?"#dddddd":"#2b2620");
-  const skin=hp<40?"#e8d5c0":(p.tan>30?"#d8a878":"#f2c9a0");
+  const skin=hp<40?"#e8d5c0":(af?af.skinTone:(p.tan>30?"#d8a878":"#f2c9a0")); // L1：肤色接 agingFeatures 的 skinTone（晒黑+年龄变暗），不再自己重算
+  const expr=faceExpr(p,o); // A1：表情判定（8 档），P3/P6 共用；定义在 lean、嘴、臂之前
   const walk=o.walking?Math.sin(S.walkPhase||0):0;
   const legA=o.walking?walk*8*(af?af.stepLen:1):0;
   const bob=o.walking?Math.abs(Math.cos(S.walkPhase||0))*2.5:Math.sin(Date.now()/900)*1.2;
-  const lean=((o.micro&&typeof o.micro.lean==="number")?o.micro.lean:(mood<35?-4:mood>80?2:0))+(af?af.hunch:0);
+  const lean=((o.micro&&typeof o.micro.lean==="number")?o.micro.lean:({sad:-6,tired:-5,sick:-4,afraid:-3,angry:3,happy:2,content:1,neutral:0}[expr]||0))+(af?af.hunch:0); // A1 肢体：难过垂头 -6，累 -5，病 -4，害怕含胸 -3，生气前倾 +3，高兴挺胸 +2；小动作 lean 优先
   const gx=o.gaze?o.gaze.x:0, gy=o.gaze?o.gaze.y:0;
   const fs=p.faceSeed||{eyeGap:11,faceW:28,nose:7,lip:11,brow:"平"};
   const eg=fs.eyeGap/2;
-  const mouth=mood>70?`<path d="M-6,5 Q0,11 6,5" stroke="#7a3a2a" fill="none" stroke-width="1.6" stroke-linecap="round"/>`
-    :mood<40?`<path d="M-6,9 Q0,3 6,9" stroke="#7a3a2a" fill="none" stroke-width="1.6" stroke-linecap="round"/>`
-    :`<line x1="-5" y1="7" x2="5" y2="7" stroke="#7a3a2a" stroke-width="1.6" stroke-linecap="round"/>`;
-  const browY=mood<40?-58:mood>75?-55:-56;
-  const sweat=(p.sweat>0||S.world.temp>=30)?`<circle cx="15" cy="-60" r="3" fill="#9fd0e8"/><circle cx="-15" cy="-56" r="2.4" fill="#9fd0e8"/>`:"";
-  const dark=en<25?`<path d="M-11,-42 Q-6,-39 -1,-42" stroke="#9a8a7a" fill="none" stroke-width="1.2"/><path d="M3,-42 Q8,-39 13,-42" stroke="#9a8a7a" fill="none" stroke-width="1.2"/>`:"";
-  const blush=mood>80?`<circle cx="-12" cy="-47" r="3.2" fill="#f2a0a0" opacity=".7"/><circle cx="14" cy="-47" r="3.2" fill="#f2a0a0" opacity=".7"/>`:"";
-  const pale=hp<40?`<rect x="-16" y="-70" width="32" height="40" rx="14" fill="#ffffff" opacity="0.18"/>`:"";
-  const wrinkles=(af&&af.wrinkles>0.15)?`<path d="M${-eg-9},-56 l4,2 M${-eg-9},-52 l4,-1 M${eg+9},-56 l-4,2 M${eg+9},-52 l-4,-1" stroke="#b09a80" stroke-width="0.9" opacity="${(af.wrinkles*0.55).toFixed(2)}" stroke-linecap="round"/><path d="M${-eg-2},-47 h5 M${eg-3},-47 h5" stroke="#b09a80" stroke-width="0.8" opacity="${(af.wrinkles*0.4).toFixed(2)}" stroke-linecap="round"/>`:"";
+  // A1+L1：头全部由 faceHeadSVG 画（脸/发/眼/眉/鼻/嘴/腮红/黑眼圈/汗/惨白/皱纹/眼泪）。
+  // 旧嘴在 y=5..11（衣服下摆上，不在脸上）——修到 y≈-43（脸椭圆 cy=-52,ry=17 内）。
+  const headSVG=faceHeadSVG(p,o,{skin,hair,af});
   let legs=o.seated?""
     :o.walking
     ?`<g transform="rotate(${legA} 0 10)"><rect x="-14" y="8" width="11" height="26" rx="4" fill="#3a3a3a"/></g><g transform="rotate(${-legA} 0 10)"><rect x="4" y="8" width="11" height="26" rx="4" fill="#3a3a3a"/></g>`
@@ -1952,18 +2873,15 @@ function drawPerson(p, x, y, o){
   if(o.eating) arms=`<line x1="-14" y1="-28" x2="-22" y2="-12" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><line x1="14" y1="-28" x2="26" y2="-44" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><line x1="26" y1="-44" x2="34" y2="-52" stroke="#8a6a4a" stroke-width="2"/>`;
   else if(o.carrying) arms=`<line x1="-14" y1="-28" x2="-6" y2="-18" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><line x1="14" y1="-28" x2="6" y2="-18" stroke="${oc}" stroke-width="5" stroke-linecap="round"/>`;
   else if(o.micro&&o.micro.arm) arms=microArmsSVG(o.micro.arm,oc);
+  else if(expr==="afraid"||expr==="sad") arms=`<line x1="-14" y1="-28" x2="11" y2="-18" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><line x1="14" y1="-28" x2="-11" y2="-18" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><circle cx="11" cy="-18" r="2.6" fill="${skin}"/><circle cx="-11" cy="-18" r="2.6" fill="${skin}"/>`; // A1 肢体：害怕/难过抱胸（双臂交叉护在胸前，手搭在对侧臂上）
   else if(o.walking) arms=`<line x1="-14" y1="-28" x2="${-16-walk*4}" y2="-6" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><line x1="14" y1="-28" x2="${16+walk*4}" y2="-6" stroke="${oc}" stroke-width="5" stroke-linecap="round"/>`;
   else arms=`<line x1="-14" y1="-28" x2="-17" y2="-8" stroke="${oc}" stroke-width="5" stroke-linecap="round"/><line x1="14" y1="-28" x2="17" y2="-8" stroke="${oc}" stroke-width="5" stroke-linecap="round"/>`;
-  const label=o.label?`<rect x="-42" y="-98" width="84" height="17" rx="8" fill="rgba(0,0,0,0.55)"/><text x="0" y="-86" font-size="11" fill="#fff" text-anchor="middle">${o.label}</text>`:"";
+  const label=o.label?`<rect x="-46" y="${-102+(o.labelDy||0)}" width="92" height="22" rx="8" fill="#1f1b16"/><text x="0" y="${-86+(o.labelDy||0)}" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">${o.label}</text>`:"";
+  const torsoW=clamp(30+((p.weight||60)-60)*0.55,22,40); // A1：胖瘦画进躯干宽（weight 48→23.4，72→36.6；默认 60→30，与 V2 一致）
   return `<g transform="translate(${x},${y+bob}) scale(${sc}) rotate(${lean})">
     ${label}
-    <circle cx="0" cy="-52" r="17" fill="${skin}"/>
-    <path d="M-17,-56 a17,17 0 0 1 34,0 l0,-6 l-34,0 z" fill="${hair}"/>
-    <circle cx="${-eg+gx}" cy="${-52+gy}" r="2" fill="#2b2620"/><circle cx="${eg+gx}" cy="${-52+gy}" r="2" fill="#2b2620"/>
-    <line x1="${-eg-2.5}" y1="${browY}" x2="${-eg+2.5}" y2="${browY}" stroke="#2b2620" stroke-width="1.2" stroke-linecap="round"/>
-    <line x1="${eg-2.5}" y1="${browY}" x2="${eg+2.5}" y2="${browY}" stroke="#2b2620" stroke-width="1.2" stroke-linecap="round"/>
-    ${(o.micro&&o.micro.mouth==="yawn")?'<ellipse cx="0" cy="7" rx="4.5" ry="6" fill="#5a2a1a"/>':mouth}${blush}${dark}${sweat}${pale}${wrinkles}
-    <rect x="-15" y="-34" width="30" height="44" rx="8" fill="${oc}"/>
+    ${headSVG}
+    <rect x="${(-torsoW/2).toFixed(1)}" y="-34" width="${torsoW.toFixed(1)}" height="44" rx="8" fill="${oc}"/>
     ${arms}${legs}
     ${o.seated?`<rect x="-34" y="-4" width="68" height="12" rx="3" fill="#8a6a4a"/>`:""}
     ${o.ball?`<circle cx="36" cy="-58" r="12" fill="#e8913a"/>`:""}
@@ -2279,8 +3197,11 @@ return 170; /* stranger：保持距离 */
 画一道弧到 (hx,hy)（被摸者的头顶），末端一个小圆手。
 父母摸孩子用它，主人公摸自己的孩子也用它。 */
 function patHeadSVG(fx, fy, hx, hy){
-const mx=(fx+hx)/2, my=Math.min(fy,hy)-14;
-return `<path d="M ${fx} ${fy} Q ${mx} ${my} ${hx} ${hy}" stroke="#f2c9a0" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="${hx}" cy="${hy}" r="4.5" fill="#f2c9a0"/>`;
+  /* [V2 旧问题] 原来控制点比两端高 14px，弧线向上鼓得像一条飘着的横线。
+     摸头是一条手臂，不是一条线：从肩膀平伸过去、手掌按在头顶上，
+     控制点只比直线高一点点，袖口留在肩膀那头。 */
+  const mx=(fx+hx)/2, my=(fy+hy)/2-3;
+  return `<path d="M ${fx} ${fy+8} Q ${mx} ${my+10} ${hx} ${hy}" stroke="#f2c9a0" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M ${fx} ${fy} L ${fx+((hx-fx)>0?8:-8)} ${fy+10}" stroke="#8a6a4a" stroke-width="6" stroke-linecap="round"/><circle cx="${hx}" cy="${hy}" r="5" fill="#f2c9a0"/>`;
 }
 
 /* socialTouch(p, q, npcX)：C10 的主入口。
@@ -2612,7 +3533,7 @@ function classroomSVG(p, act, loc){
   const duty=mates.length?mates[0].name:"小明";
   s+=`<text x="60" y="110" font-size="11" fill="#5e554a">值日：${duty}</text>`;
   /* 讲台和老师：站在讲台后，手里拿着粉笔 */
-  s+=`<rect x="300" y="206" width="100" height="44" rx="6" fill="#7a5a3a"/><circle cx="350" cy="182" r="14" fill="#e8b890"/><rect x="336" y="196" width="28" height="30" rx="6" fill="#2b4a6f"/><line x1="362" y1="206" x2="376" y2="196" stroke="#e8b890" stroke-width="4" stroke-linecap="round"/><circle cx="378" cy="194" r="2.5" fill="#fff"/><text x="350" y="242" font-size="11" fill="#fff" text-anchor="middle">老师</text>`;
+  s+=`<rect x="300" y="206" width="100" height="44" rx="6" fill="#7a5a3a"/><circle cx="350" cy="182" r="14" fill="#e8b890"/><rect x="336" y="196" width="28" height="30" rx="6" fill="#2b4a6f"/><line x1="362" y1="206" x2="376" y2="196" stroke="#e8b890" stroke-width="4" stroke-linecap="round"/><circle cx="378" cy="194" r="2.5" fill="#fff"/><rect x="314" y="228" width="72" height="22" rx="8" fill="#1f1b16"/><text x="350" y="244" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">老师</text>`;
   /* 同学们的课桌和坐着的同学 */
   mates.forEach((m,i)=>{
     const d=desks[i]; if(!d)return;
@@ -2632,14 +3553,18 @@ function bedroomSVG(p, act, night){
   const age=ageYears(p);
   const sleeping=act&&act.kind==="sleep";
   let s="";
-  /* 窗户：白天是阳光，夜里是月亮和星星，还有一道月光照进来 */
-  s+=`<rect x="560" y="120" width="90" height="110" rx="6" fill="${night?"#232c4a":"#cfe3f2"}" stroke="#8aa"/><line x1="605" y1="120" x2="605" y2="230" stroke="#8aa"/><line x1="560" y1="175" x2="650" y2="175" stroke="#8aa"/>`;
+  /* 窗户：白天是阳光，夜里是月亮和星星，还有一道月光照进来。
+     [B1 顺手] 窗从 x560 移到 x450：原来在默认镜头外（卧室镜头 viewBox 世界 150–950，
+     窗在世界 960–1050），只能拖动才看得见；现在窗在世界 850–940，默认镜头里就有。
+     两边各一幅窗帘，布面有点垂感，别挡住玻璃。 */
+  s+=`<rect x="450" y="120" width="90" height="110" rx="6" fill="${night?"#232c4a":"#cfe3f2"}" stroke="#8aa"/><line x1="495" y1="120" x2="495" y2="230" stroke="#8aa"/><line x1="450" y1="175" x2="540" y2="175" stroke="#8aa"/>`;
+  s+=`<rect x="436" y="112" width="14" height="126" rx="6" fill="#c8a06a"/><path d="M 440 118 L 440 232 M 445 118 L 445 232" stroke="#a8824f" stroke-width="1.5"/><rect x="540" y="112" width="14" height="126" rx="6" fill="#c8a06a"/><path d="M 545 118 L 545 232 M 550 118 L 550 232" stroke="#a8824f" stroke-width="1.5"/>`;
   if(night){
-    s+=`<circle cx="622" cy="148" r="14" fill="#f2ead0"/><circle cx="616" cy="144" r="3" fill="#d8c9a0"/><circle cx="626" cy="154" r="2.5" fill="#d8c9a0"/>`;
-    s+=`<circle cx="578" cy="138" r="1.8" fill="#fff"/><circle cx="592" cy="160" r="1.5" fill="#fff"/><circle cx="638" cy="132" r="1.5" fill="#fff"/>`;
-    s+=`<polygon points="560,230 650,230 700,300 600,300" fill="#dfeaf5" opacity="0.14"/>`;
+    s+=`<circle cx="512" cy="148" r="14" fill="#f2ead0"/><circle cx="506" cy="144" r="3" fill="#d8c9a0"/><circle cx="516" cy="154" r="2.5" fill="#d8c9a0"/>`;
+    s+=`<circle cx="468" cy="138" r="1.8" fill="#fff"/><circle cx="482" cy="160" r="1.5" fill="#fff"/><circle cx="528" cy="132" r="1.5" fill="#fff"/>`;
+    s+=`<polygon points="450,230 540,230 590,300 490,300" fill="#dfeaf5" opacity="0.14"/>`;
   } else {
-    s+=`<circle cx="622" cy="148" r="13" fill="#ffd94d"/><ellipse cx="605" cy="200" rx="30" ry="8" fill="#ffd94d" opacity="0.25"/>`;
+    s+=`<circle cx="512" cy="148" r="13" fill="#ffd94d"/><ellipse cx="495" cy="200" rx="30" ry="8" fill="#ffd94d" opacity="0.25"/>`;
   }
   /* 床：床头、床垫、枕头；睡着时被子搭下来盖住床沿，没睡时被子叠在床脚 */
   s+=`<rect x="60" y="210" width="16" height="110" rx="4" fill="#6a4a2a"/>`;
@@ -2720,9 +3645,22 @@ function busInteriorSVG(p, seated){
     s+=`<rect x="${wx}" y="86" width="160" height="74" rx="6" fill="none" stroke="#2b4a6f" stroke-width="3"/>`;
   }
   s+=`<text x="790" y="72" font-size="13" fill="#fff" text-anchor="middle">🚌 公交车 · 下一站：市中心</text>`;
-  /* 扶手杆、投币箱、司机 */
-  s+=`<line x1="440" y1="176" x2="1160" y2="176" stroke="#d8d0bd" stroke-width="4"/><line x1="520" y1="176" x2="520" y2="240" stroke="#d8d0bd" stroke-width="3"/><line x1="1080" y1="176" x2="1080" y2="240" stroke="#d8d0bd" stroke-width="3"/>`;
-  s+=`<rect x="452" y="196" width="30" height="40" rx="4" fill="#2b2b2b"/><text x="467" y="220" font-size="9" fill="#ffd94d" text-anchor="middle">票</text>`;
+  /* 扶手杆、吊环、投币箱、前门、线路图、司机包、门边伞、司机
+     [E3] 黑方块查清了：底本注释写着它是投币箱，但只画了纯黑矩形 + 9px“票”字，
+     车厢还没画门。投币箱重画成带投币口 / 2元显示 / 投币字的箱子；扶手杆从门后起，
+     别横穿过门；其余是车厢里本来就该有的东西。 */
+  s+=`<line x1="452" y1="176" x2="1160" y2="176" stroke="#d8d0bd" stroke-width="4"/><line x1="520" y1="176" x2="520" y2="240" stroke="#d8d0bd" stroke-width="3"/><line x1="1080" y1="176" x2="1080" y2="240" stroke="#d8d0bd" stroke-width="3"/>`;
+  /* 吊环：从扶手杆垂下来，站着的乘客抓着它 */
+  for(const rx of [620,720,820,920,1020,1120]) s+=`<line x1="${rx}" y1="176" x2="${rx}" y2="194" stroke="#d8d0bd" stroke-width="3"/><circle cx="${rx}" cy="201" r="7" fill="none" stroke="#d8d0bd" stroke-width="3"/>`;
+  /* 前门：车厢最前面的玻璃门，带把手和台阶 */
+  s+=`<rect x="424" y="86" width="24" height="210" rx="4" fill="none" stroke="#2b4a6f" stroke-width="3"/><rect x="427" y="90" width="18" height="110" rx="3" fill="#cfe3f2" opacity="0.85"/><rect x="427" y="205" width="18" height="88" rx="3" fill="#3a6a9a"/><line x1="442" y1="150" x2="442" y2="190" stroke="#d8d0bd" stroke-width="3" stroke-linecap="round"/><rect x="422" y="296" width="28" height="8" rx="3" fill="#5a5a5a"/><text x="436" y="282" font-size="9" fill="#fff" text-anchor="middle">前门</text>`;
+  /* 投币箱：深蓝箱体、投币口、2元显示、投币字——不是一块黑方块 */
+  s+=`<rect x="452" y="196" width="34" height="44" rx="4" fill="#2b3a4a" stroke="#5a6a7a"/><rect x="460" y="199" width="18" height="5" rx="2" fill="#0f1a26"/><rect x="458" y="208" width="22" height="14" rx="2" fill="#0f2a1a"/><text x="469" y="219" font-size="10" fill="#7dff9a" text-anchor="middle">2元</text><text x="469" y="236" font-size="10" fill="#ffd94d" text-anchor="middle">投币</text><rect x="450" y="240" width="38" height="6" rx="2" fill="#1a2836"/>`;
+  /* 线路图：贴在车厢前部上方，站名一目了然 */
+  s+=`<rect x="980" y="54" width="180" height="18" rx="4" fill="#fff" opacity="0.92"/><line x1="990" y1="63" x2="1150" y2="63" stroke="#2b4a6f" stroke-width="2"/><circle cx="1000" cy="63" r="3" fill="#c8402a"/><circle cx="1040" cy="63" r="3" fill="#2b4a6f"/><circle cx="1080" cy="63" r="3" fill="#2b4a6f"/><circle cx="1120" cy="63" r="3" fill="#2b4a6f"/><text x="1140" y="67" font-size="9" fill="#2b4a6f" text-anchor="middle">市中心</text>`;
+  /* 司机包：放在司机座位边的地上；门边伞：折起来的伞靠在门边 */
+  s+=`<rect x="468" y="268" width="24" height="22" rx="4" fill="#6a4a2a"/><path d="M 474 268 Q 480 258 486 268" stroke="#6a4a2a" stroke-width="3" fill="none"/>`;
+  s+=`<line x1="456" y1="250" x2="464" y2="294" stroke="#8a6a9a" stroke-width="4" stroke-linecap="round"/><path d="M 464 294 q 6 2 4 8" stroke="#8a6a9a" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="456" cy="250" r="3" fill="#5b8dc9"/>`;
   s+=`<circle cx="500" cy="210" r="13" fill="#e8b890"/><rect x="487" y="223" width="26" height="30" rx="6" fill="#2b4a6f"/><circle cx="486" cy="246" r="9" fill="none" stroke="#2b2620" stroke-width="3"/>`;
   /* 座椅：两排 */
   const seats=[[560,"#c8402a"],[660,"#5b8dc9"],[940,"#3d7a4a"],[1040,"#8a6a9a"]];
@@ -2743,9 +3681,29 @@ function busInteriorSVG(p, seated){
 /* 整舱 + 坐着的他：座椅靠背挡住腿，他就是坐着的（不改 drawPerson 的画法） */
 function busCabinSVG(p){
   const inner=busInteriorSVG(p, true);
-  const him=drawPerson(p, 660, 300, {scale:.95, gaze:{x:0,y:0}});
-  const seatFront=`<rect x="628" y="288" width="64" height="52" rx="8" fill="#2b4a6f"/><rect x="628" y="288" width="64" height="14" rx="7" fill="#3a5a7f"/><rect x="622" y="336" width="76" height="10" rx="4" fill="#2b4a6f"/>`;
-  return `<g>${inner}${him}${seatFront}</g>`;
+  const age=ageYears(p);
+  if(age<1){
+    /* [V2 旧问题] 婴儿不会一个人坐在公交座位上：妈妈抱着他坐在座位上，
+       他躺在妈妈臂弯里。妈妈不在（极少见）就让他裹着小毯子靠在座位上——绝不独自坐着。 */
+    const mom=findNPC("mother");
+    if(mom&&mom.alive){
+      const seatBack=`<rect x="628" y="238" width="64" height="62" rx="8" fill="#2b4a6f"/><rect x="628" y="238" width="64" height="14" rx="7" fill="#3a5a7f"/>`;
+      const momFig=drawPerson(mom, 660, 300, {scale:.95, seated:true, label:"妈妈", outfit:"casual"});
+      const baby=drawPerson(p, 660, 268, {scale:.8, lying:true, label:p.name});
+      const lapCover=`<rect x="630" y="292" width="60" height="10" rx="4" fill="#c8402a" opacity="0.85"/>`;
+      return `<g>${inner}${seatBack}${momFig}${baby}${lapCover}</g>`;
+    }
+    const baby=drawPerson(p, 660, 292, {scale:.85, sitting:true, label:p.name});
+    const wrap=`<rect x="630" y="288" width="60" height="14" rx="6" fill="#c8402a" opacity="0.85"/>`;
+    return `<g>${inner}${baby}${wrap}</g>`;
+  }
+  /* [小修：公交主角只露头] 原来椅背挡板从 y288 一直盖到 y340，躯干全被盖住，只剩一个头。
+     椅背改画在人身后（只露椅背顶），他坐在椅面上，腿由椅面轻轻遮住，
+     头、躯干、手臂全在外面——坐公交就是这个样子。 */
+  const seatBack=`<rect x="628" y="238" width="64" height="62" rx="8" fill="#2b4a6f"/><rect x="628" y="238" width="64" height="14" rx="7" fill="#3a5a7f"/>`;
+  const him=drawPerson(p, 660, 300, {scale:.95, seated:true, gaze:{x:0,y:0}});
+  const seatEdge=`<rect x="622" y="300" width="76" height="10" rx="4" fill="#2b4a6f"/>`;
+  return `<g>${inner}${seatBack}${him}${seatEdge}</g>`;
 }
 
 /* ---------- 通用坐姿：drawPerson 原样画人，再把桌 / 椅背 / 座椅画在腿前面 ---------- */
@@ -2860,6 +3818,223 @@ function eatPlatesSVG(p, act){
    按活动叠加。注意：sceneProps 只画“房间和东西”，人不归它画——
    坐着的人（上课 / 吃饭 / 坐车）由 renderScene 的接线用 seatedFigure /
    busCabinSVG 画（见 INTEGRATION.md），这里只留好座位和桌子。 */
+/* ============================================================================
+ * 一方小世界 V3 · 场景模块 scenes.js（B1 + E1 + E3 + E5 + 3 个遗留小修 + 4 个 V2 旧问题）
+ * ----------------------------------------------------------------------------
+ * 底本：~/workspace/lifesim-build/index.html，3589 行，
+ *       sha256 b0253f7e9f8fcfa0f96e35bc2dfe74b6f27d6c89500d1300726c9b5f54923b40（V2 交付版）。
+ * 用法（给总协调）：本文件分两部分——
+ *   (1) 新增函数（scenePropsExtraB1 / v3PillDy / sceneEdgeFadeSVG），
+ *       直接插到底本 `function sceneProps(loc, act){` 之前（函数声明会提升，放哪都行）；
+ *   (2) 补丁块（文件末尾的 PATCH 块）：每块写明 ANCHOR（底本原文，必须恰好出现 1 次）
+ *       与 REPLACEMENT（替换后的全文），按 INTEGRATION.md 的顺序逐块替换。
+ *       补丁块每行都是 // 注释（锚点原文里哪怕有块注释也不会提前闭合），
+ *       所以本文件可直接 `node --check`；应用脚本去掉每行行首的 // 还原原文。
+ * 铁律：不当游戏做，你是造物主，这是你创造的世界；每个判断都问“真实世界会这样吗”。
+ * 单文件自包含，不破坏已有系统（无跳时间按钮、无固定时间表、新人生从婴儿开始、
+ * 主人公永远不知道自己被创造、内心独白只给观众看）。
+ * 只用底本已有的全局工具：$、clamp、dayHash、dayPick、dayJit、dayCount、ageYears、
+ * focus、findNPC、drawPerson、stageScale、INDOOR_LOCS、LOCS、S。
+ * 坐标说明：sceneProps 在 renderScene 里画在 `<g transform="translate(400,0)">` 里，
+ * 所以这里的 x 都是房间坐标（0–800），世界坐标 = 房间坐标 + 400。
+ * 默认镜头下各场景看得见的房间坐标带（由 LOC_X 与 viewBox 800 宽算出）：
+ *   卧室/浴室 0–550 · 厨房 250–800 · 教室 50–800 · 公交（世界坐标）420–1060（E1 切镜后 420–1180）
+ *   球场 100–800（E5 把 LOC_X 从 1350 改到 900 后）· 街道 0–400 · 商店 0–400 · 客厅 0–800。
+ * 新道具一律放在看得见的带子里——镜头外的道具等于没有。
+ * ----------------------------------------------------------------------------
+ * 内容一览：
+ *   B1  scenePropsExtraB1(loc, act)：每个场景住过人的样子（卧室/厨房/浴室/教室/
+ *       公交/球场/街道/商店/客厅/公园/车站）。道具全是世界里合理的东西。
+ *   E1  补丁：换地方直接切镜（tickActivity 里，见 PATCH E1）。
+ *   E3  补丁：投币箱重画 + 前门/吊环/线路图/司机包/门边伞；busCabinSVG 重写
+ *       （公交主角完整坐姿 + 婴儿由妈妈抱着）。
+ *   E5  补丁：室内墙面铺满世界宽 + 镜头两边 70px 渐隐 + 树 1200→1240 + 球场人 1350→900。
+ *   小修：商店左半填满（B1 商店）· 公交完整坐姿（busCabinSVG）· 姓名 pill 错开
+ *       （v3PillDy + LABEL/PILL 补丁）。
+ *   V2 旧问题：摸头弧线（patHeadSVG 重写）· 雨天太阳（SUNRAIN 补丁）·
+ *       婴儿坐公交（busCabinSVG）· 吃饭时爸爸 caption（实测 6/6 次都是“一起吃饭”，
+ *       未复现，见 INTEGRATION.md——本模块不改 parentScene 的 caption 逻辑）。
+ *   另修（B1 顺手）：卧室窗户从房间 x560 移到 x450，进默认镜头（原来在镜头外）。
+ * ========================================================================== */
+
+/* ---------- B1：每个场景住过人的样子 ---------- */
+/* scenePropsExtraB1(loc, act)：sceneProps 的 extra 末尾拼上这一段（见 PATCH B1-HOOK）。
+   只画“房间和东西”，人不归它画（坐着的人由 renderScene 的接线画）。
+   位置用 dayHash 定死在当天，换天就挪地方——像真家。 */
+function scenePropsExtraB1(loc, act){
+  const p=focus(); if(!p) return "";
+  const day=dayCount(), age=ageYears(p), w=p.wealth;
+  const poor=(w==="贫困"||w==="悲剧"), rich=(w==="富裕");
+  let s="";
+  if(loc==="bedroom"){
+    /* 窗台绿植：窗挪到 450–540 后，绿植就摆在窗台上（看得见的那一带） */
+    s+=`<rect x="472" y="214" width="26" height="22" rx="3" fill="#c8402a"/><circle cx="480" cy="206" r="8" fill="#3d7a4a"/><circle cx="490" cy="202" r="7" fill="#4a8a3d"/><circle cx="496" cy="210" r="6" fill="#3d7a4a"/>`;
+    /* 床头充电线 + 手机：手机搁在床头柜边上，线垂下来 */
+    s+=`<rect x="292" y="296" width="20" height="14" rx="3" fill="#2b2b2b"/><rect x="294" y="298" width="16" height="10" rx="2" fill="#9fd0e8"/><path d="M 302 310 Q 292 322 272 318" stroke="#2b2620" stroke-width="1.5" fill="none"/>`;
+    /* 墙上的挂钩 + 毛巾：窗右边那面空墙，毛巾搭着 */
+    s+=`<circle cx="570" cy="140" r="3" fill="#8a8172"/><rect x="556" y="142" width="28" height="54" rx="4" fill="#5b8dc9"/><line x1="560" y1="142" x2="560" y2="196" stroke="#4a76ab" stroke-width="1.5"/><line x1="566" y1="142" x2="566" y2="196" stroke="#4a76ab" stroke-width="1.5"/>`;
+    /* 床下鞋盒、地上摞着的书、床头柜抽屉、耳机、床边露出来的旧球 */
+    s+=`<rect x="320" y="312" width="80" height="16" rx="3" fill="#b8a888"/><line x1="320" y1="318" x2="400" y2="318" stroke="#8a8172" stroke-width="1.5"/>`;
+    s+=`<rect x="410" y="310" width="40" height="6" rx="2" fill="#2b4a6f"/><rect x="414" y="304" width="34" height="6" rx="2" fill="#c8402a"/><rect x="418" y="298" width="28" height="6" rx="2" fill="#3d7a4a"/>`;
+    s+=`<line x1="254" y1="260" x2="282" y2="260" stroke="#5e4632" stroke-width="1.5"/><circle cx="268" cy="268" r="2.5" fill="#5e4632"/>`;
+    s+=`<path d="M 330 306 Q 345 296 360 306" stroke="#2b2620" stroke-width="2" fill="none"/><rect x="326" y="304" width="8" height="12" rx="3" fill="#2b2b2b"/><rect x="356" y="304" width="8" height="12" rx="3" fill="#2b2b2b"/>`;
+    s+=`<circle cx="215" cy="322" r="10" fill="#e8913a"/><path d="M 205 322 L 225 322" stroke="#a8641e" stroke-width="1.5"/>`;
+  }
+  if(loc==="kitchen"){
+    /* 吊柜、油烟机、灶台（接上原来那截灶台，伸进看得见的带子） */
+    s+=`<rect x="250" y="105" width="140" height="50" rx="4" fill="#8a6a4a"/><line x1="320" y1="105" x2="320" y2="155" stroke="#6a4a2a" stroke-width="2"/><circle cx="285" cy="130" r="3" fill="#5e4632"/><circle cx="355" cy="130" r="3" fill="#5e4632"/>`;
+    s+=`<rect x="322" y="148" width="16" height="22" fill="#888"/><polygon points="280,195 380,195 360,168 300,168" fill="#9aa5ab"/><circle cx="300" cy="188" r="2" fill="#ffd94d"/><circle cx="312" cy="188" r="2" fill="#ffd94d"/>`;
+    s+=`<rect x="280" y="232" width="180" height="58" rx="6" fill="#a89878"/><circle cx="330" cy="245" r="14" fill="#555"/><circle cx="410" cy="245" r="14" fill="#555"/><rect x="310" y="215" width="40" height="18" rx="4" fill="#777"/><rect x="306" y="210" width="48" height="6" rx="3" fill="#666"/>`;
+    /* 调料架、水龙头、刀架、碗柜架、蒸锅、水果篮、挂着的铲勺、搭在水槽边的抹布 */
+    s+=`<rect x="520" y="195" width="120" height="7" rx="2" fill="#8a6a4a"/><rect x="525" y="170" width="18" height="25" rx="2" fill="#c8402a"/><rect x="555" y="170" width="18" height="25" rx="2" fill="#e8b04a"/><rect x="585" y="170" width="18" height="25" rx="2" fill="#3d7a4a"/><rect x="615" y="170" width="18" height="25" rx="2" fill="#f2ead0"/><rect x="525" y="166" width="18" height="5" rx="2" fill="#8a6a4a"/><rect x="555" y="166" width="18" height="5" rx="2" fill="#8a6a4a"/><rect x="585" y="166" width="18" height="5" rx="2" fill="#8a6a4a"/><rect x="615" y="166" width="18" height="5" rx="2" fill="#8a6a4a"/>`;
+    s+=`<rect x="646" y="205" width="6" height="28" fill="#8aa"/><line x1="649" y1="205" x2="662" y2="205" stroke="#8aa" stroke-width="4"/><circle cx="640" cy="205" r="4" fill="#8aa"/>`;
+    s+=`<rect x="665" y="205" width="30" height="27" rx="3" fill="#6a4a2a"/><rect x="670" y="190" width="4" height="16" fill="#cfd8dc"/><rect x="680" y="188" width="4" height="18" fill="#cfd8dc"/><rect x="690" y="190" width="4" height="16" fill="#cfd8dc"/>`;
+    s+=`<rect x="640" y="110" width="120" height="8" rx="2" fill="#8a6a4a"/><ellipse cx="660" cy="128" rx="12" ry="6" fill="#fff" stroke="#d8d0bd"/><ellipse cx="690" cy="128" rx="12" ry="6" fill="#fff" stroke="#d8d0bd"/><ellipse cx="720" cy="128" rx="12" ry="6" fill="#5b8dc9" stroke="#d8d0bd"/><rect x="742" y="120" width="10" height="14" rx="2" fill="#e8b04a"/><rect x="660" y="120" width="10" height="14" rx="2" fill="#3d7a4a"/>`;
+    s+=`<rect x="500" y="185" width="80" height="15" rx="6" fill="#888"/><rect x="510" y="178" width="60" height="8" rx="4" fill="#666"/><line x1="520" y1="176" x2="518" y2="168" stroke="#cfd8dc" stroke-width="2"/><line x1="540" y1="176" x2="542" y2="167" stroke="#cfd8dc" stroke-width="2"/><line x1="560" y1="176" x2="562" y2="169" stroke="#cfd8dc" stroke-width="2"/>`;
+    s+=`<rect x="605" y="215" width="40" height="12" rx="6" fill="#8a6a4a"/><circle cx="616" cy="212" r="5" fill="#e8913a"/><circle cx="628" cy="211" r="5" fill="#c8402a"/><circle cx="638" cy="213" r="5" fill="#3d7a4a"/>`;
+    s+=`<line x1="515" y1="128" x2="560" y2="128" stroke="#8a8172" stroke-width="2"/><line x1="525" y1="128" x2="525" y2="158" stroke="#8aa" stroke-width="2.5"/><circle cx="525" cy="164" r="6" fill="#8aa"/><line x1="548" y1="128" x2="548" y2="156" stroke="#8aa" stroke-width="2.5"/><rect x="542" y="156" width="12" height="14" rx="2" fill="#8aa"/>`;
+    s+=`<rect x="660" y="232" width="40" height="8" rx="3" fill="#5b8dc9" opacity="0.8"/><line x1="660" y1="236" x2="700" y2="236" stroke="#4a76ab" stroke-width="1"/>`;
+    /* 垃圾桶：放在饭桌右边（房间 x745），吃饭时不被饭桌挡住——原来那只在镜头外/桌后 */
+    s+=`<rect x="745" y="262" width="33" height="38" rx="4" fill="#5a7a5a"/><rect x="742" y="256" width="39" height="8" rx="3" fill="#4a6a4a"/><rect x="750" y="258" width="22" height="8" rx="2" fill="#f2ead0"/>`;
+    if(rich) s+=`<rect x="470" y="232" width="10" height="26" rx="2" fill="#c8402a"/><circle cx="475" cy="228" r="3" fill="#c8402a"/>`;
+    if(poor) s+=`<path d="M 300 290 L 306 276 L 312 290" stroke="#8a8172" stroke-width="1.5" fill="none"/>`;
+  }
+  if(act&&act.kind==="bath"){
+    /* 浴室：马桶、洗手池、搭在浴盆边的浴巾、香皂盒、第二只漱口杯、镜前灯、地漏、拖鞋、换洗衣物篮、沐浴露 */
+    s+=`<rect x="62" y="232" width="42" height="30" rx="4" fill="#fff" stroke="#cfd8dc"/><ellipse cx="83" cy="278" rx="22" ry="14" fill="#fff" stroke="#cfd8dc"/><ellipse cx="83" cy="272" rx="18" ry="8" fill="#eef4f8" stroke="#cfd8dc"/><rect x="78" y="228" width="10" height="5" rx="2" fill="#9aa5ab"/>`;
+    s+=`<ellipse cx="260" cy="240" rx="30" ry="12" fill="#fff" stroke="#cfd8dc"/><rect x="252" y="250" width="16" height="42" rx="4" fill="#eef4f8" stroke="#cfd8dc"/><line x1="260" y1="228" x2="260" y2="240" stroke="#8aa" stroke-width="3"/><circle cx="254" cy="228" r="3" fill="#8aa"/>`;
+    s+=`<rect x="300" y="268" width="45" height="20" rx="4" fill="#e8913a"/><line x1="308" y1="268" x2="308" y2="288" stroke="#c97a1e" stroke-width="1.5"/><line x1="316" y1="268" x2="316" y2="288" stroke="#c97a1e" stroke-width="1.5"/>`;
+    s+=`<rect x="455" y="272" width="35" height="10" rx="3" fill="#f2ead0" stroke="#d8d0bd"/><ellipse cx="472" cy="272" rx="8" ry="4" fill="#ffd94d"/>`;
+    s+=`<rect x="502" y="232" width="16" height="22" rx="3" fill="#e8b04a" stroke="#d8d0bd"/><line x1="508" y1="232" x2="506" y2="218" stroke="#3d7a4a" stroke-width="2.5"/>`;
+    s+=`<rect x="168" y="106" width="54" height="10" rx="5" fill="#ffd94d" opacity="0.9"/><circle cx="195" cy="111" r="14" fill="#ffd94d" opacity="0.15"/>`;
+    s+=`<circle cx="390" cy="322" r="6" fill="#9aa5ab"/><circle cx="390" cy="322" r="2.5" fill="#5a6a7a"/>`;
+    s+=`<ellipse cx="250" cy="318" rx="11" ry="4.5" fill="#5b8dc9"/><ellipse cx="280" cy="320" rx="11" ry="4.5" fill="#5b8dc9"/>`;
+    s+=`<rect x="115" y="292" width="45" height="28" rx="6" fill="#b8a888"/><circle cx="128" cy="290" r="8" fill="#5b8dc9"/><circle cx="146" cy="288" r="8" fill="#c8402a"/>`;
+    s+=`<rect x="520" y="292" width="20" height="28" rx="3" fill="#3d7a4a"/><rect x="526" y="284" width="8" height="9" rx="2" fill="#2b5a34"/>`;
+    if(age<3) s+=`<circle cx="310" cy="282" r="7" fill="#fff" opacity="0.85"/>`;
+  }
+  if(loc==="school"||loc==="university"){
+    /* 黑板槽：粉笔盒、粉笔、板擦；讲台上的水杯 */
+    s+=`<rect x="180" y="200" width="440" height="6" rx="3" fill="#6a4a2a"/><rect x="200" y="188" width="30" height="12" rx="2" fill="#f2ead0" stroke="#d8d0bd"/><rect x="206" y="190" width="4" height="8" fill="#fff"/><rect x="214" y="190" width="4" height="8" fill="#ffd94d"/><rect x="240" y="190" width="35" height="10" rx="2" fill="#5a4a3a"/><rect x="240" y="198" width="35" height="3" fill="#8a8172"/>`;
+    s+=`<rect x="385" y="190" width="15" height="16" rx="2" fill="#5b8dc9"/><line x1="388" y1="193" x2="397" y2="193" stroke="#fff" stroke-width="1.5"/>`;
+    /* 课程表、奖状、窗户 + 窗台绿植、吊扇、灯管、粉笔灰 */
+    s+=`<rect x="60" y="130" width="90" height="70" rx="4" fill="#fff" stroke="#8a8172"/><text x="105" y="148" font-size="11" fill="#1e3a5f" text-anchor="middle">课程表</text><line x1="68" y1="158" x2="142" y2="158" stroke="#d8d0bd"/><line x1="68" y1="172" x2="142" y2="172" stroke="#d8d0bd"/><line x1="68" y1="186" x2="142" y2="186" stroke="#d8d0bd"/>`;
+    s+=`<rect x="650" y="58" width="50" height="34" rx="3" fill="#f2ead0" stroke="#c8402a"/><text x="675" y="79" font-size="14" fill="#c8402a" text-anchor="middle">★</text><rect x="710" y="58" width="50" height="34" rx="3" fill="#f2ead0" stroke="#c8402a"/><text x="735" y="79" font-size="14" fill="#c8402a" text-anchor="middle">★</text>`;
+    s+=`<rect x="700" y="135" width="90" height="65" rx="4" fill="#cfe3f2" stroke="#8aa"/><line x1="745" y1="135" x2="745" y2="200" stroke="#8aa"/><line x1="700" y1="167" x2="790" y2="167" stroke="#8aa"/><rect x="695" y="200" width="100" height="8" rx="3" fill="#8a6a4a"/><rect x="712" y="188" width="18" height="14" rx="2" fill="#c8402a"/><circle cx="720" cy="182" r="6" fill="#3d7a4a"/><rect x="758" y="188" width="18" height="14" rx="2" fill="#5b8dc9"/><circle cx="766" cy="182" r="6" fill="#4a8a3d"/>`;
+    s+=`<line x1="400" y1="28" x2="400" y2="48" stroke="#8a8172" stroke-width="3"/><circle cx="400" cy="52" r="6" fill="#8a8172"/><ellipse cx="400" cy="52" rx="30" ry="5" fill="#b8b0a0"/><ellipse cx="400" cy="52" rx="5" ry="28" fill="#b8b0a0"/>`;
+    s+=`<rect x="200" y="38" width="100" height="8" rx="4" fill="#fff" stroke="#d8d0bd"/><rect x="500" y="38" width="100" height="8" rx="4" fill="#fff" stroke="#d8d0bd"/>`;
+    s+=`<circle cx="250" cy="212" r="2" fill="#fff" opacity="0.7"/><circle cx="400" cy="214" r="2" fill="#fff" opacity="0.7"/><circle cx="550" cy="211" r="2" fill="#fff" opacity="0.7"/>`;
+    /* 课桌上的铅笔、橡皮；桌子底下挂着/放着的书包；墙上的地图；角落的垃圾桶、扫帚、簸箕 */
+    s+=`<line x1="160" y1="249" x2="182" y2="249" stroke="#e8b04a" stroke-width="2.5"/><line x1="280" y1="249" x2="302" y2="249" stroke="#2b4a6f" stroke-width="2.5"/><line x1="630" y1="249" x2="652" y2="249" stroke="#c8402a" stroke-width="2.5"/><line x1="740" y1="249" x2="762" y2="249" stroke="#3d7a4a" stroke-width="2.5"/>`;
+    s+=`<rect x="400" y="244" width="15" height="6" rx="2" fill="#f2ead0" stroke="#d8d0bd"/>`;
+    s+=`<rect x="140" y="292" width="30" height="22" rx="6" fill="#2b4a6f"/><rect x="610" y="292" width="30" height="22" rx="6" fill="#8a6a9a"/><rect x="510" y="292" width="30" height="22" rx="6" fill="#c8402a"/>`;
+    s+=`<rect x="60" y="210" width="80" height="70" rx="4" fill="#f2ead0" stroke="#8a8172"/><path d="M 75 230 L 95 225 L 110 245 L 90 265 L 72 250 Z" fill="#9fc4e8"/><text x="100" y="272" font-size="10" fill="#5e554a" text-anchor="middle">地图</text>`;
+    s+=`<rect x="545" y="270" width="30" height="30" rx="4" fill="#5a7a5a"/><rect x="542" y="264" width="36" height="8" rx="3" fill="#4a6a4a"/>`;
+    s+=`<line x1="152" y1="230" x2="162" y2="296" stroke="#8a6a4a" stroke-width="3"/><path d="M 146 296 L 168 296 L 164 306 L 150 306 Z" fill="#e8b04a"/><rect x="170" y="290" width="25" height="10" rx="2" fill="#8a8172"/>`;
+  }
+  if(loc==="bus"){
+    /* 灭火器（夹在两排座椅之间的地上）、下车铃、车顶灯、座椅靠枕、防滑条、车窗上的小广告贴 */
+    s+=`<rect x="976" y="252" width="20" height="38" rx="5" fill="#c8402a"/><rect x="982" y="244" width="8" height="10" rx="2" fill="#8a8172"/><line x1="986" y1="244" x2="996" y2="238" stroke="#2b2620" stroke-width="2"/>`;
+    s+=`<rect x="752" y="170" width="16" height="8" rx="3" fill="#ffd94d"/><circle cx="760" cy="182" r="5" fill="#c8402a"/>`;
+    s+=`<rect x="560" y="54" width="60" height="8" rx="4" fill="#fff" opacity="0.9"/><rect x="900" y="54" width="60" height="8" rx="4" fill="#fff" opacity="0.9"/>`;
+    s+=`<rect x="544" y="240" width="32" height="10" rx="4" fill="#e8dcc0"/><rect x="644" y="240" width="32" height="10" rx="4" fill="#e8dcc0"/><rect x="924" y="240" width="32" height="10" rx="4" fill="#e8dcc0"/>`;
+    s+=`<line x1="440" y1="302" x2="1160" y2="302" stroke="#5a6a7a" stroke-width="2"/><line x1="440" y1="308" x2="1160" y2="308" stroke="#5a6a7a" stroke-width="2"/>`;
+    s+=`<rect x="950" y="92" width="35" height="20" rx="3" fill="#fff" opacity="0.95"/><line x1="954" y1="99" x2="981" y2="99" stroke="#c8402a" stroke-width="2"/><line x1="954" y1="105" x2="975" y2="105" stroke="#8a8172" stroke-width="1.5"/>`;
+  }
+  if(loc==="court"){
+    /* 左边篮筐（原来只有一个筐，半场球没法打）、记分牌、围栏、树、场边站着看球的队友、运动包、水瓶、路灯 */
+    s+=`<rect x="108" y="118" width="30" height="30" rx="3" fill="#f2ead0" stroke="#c8402a"/><rect x="118" y="148" width="10" height="90" fill="#888"/><circle cx="123" cy="150" r="16" fill="none" stroke="#c8402a" stroke-width="4"/><line x1="118" y1="160" x2="128" y2="172" stroke="#fff" stroke-width="1.5"/><line x1="128" y1="160" x2="118" y2="172" stroke="#fff" stroke-width="1.5"/>`;
+    s+=`<rect x="745" y="160" width="7" height="80" fill="#888"/><rect x="715" y="110" width="75" height="50" rx="4" fill="#2b2b2b" stroke="#d8d0bd"/><text x="752" y="142" font-size="16" fill="#ffd94d" text-anchor="middle">24 : 18</text>`;
+    s+=`<line x1="100" y1="208" x2="790" y2="208" stroke="#8a8172" stroke-width="2"/><line x1="150" y1="200" x2="150" y2="216" stroke="#8a8172" stroke-width="3"/><line x1="250" y1="200" x2="250" y2="216" stroke="#8a8172" stroke-width="3"/><line x1="350" y1="200" x2="350" y2="216" stroke="#8a8172" stroke-width="3"/><line x1="450" y1="200" x2="450" y2="216" stroke="#8a8172" stroke-width="3"/><line x1="550" y1="200" x2="550" y2="216" stroke="#8a8172" stroke-width="3"/><line x1="650" y1="200" x2="650" y2="216" stroke="#8a8172" stroke-width="3"/>`;
+    s+=`<circle cx="150" cy="180" r="22" fill="#3d7a4a"/><rect x="146" y="196" width="8" height="20" fill="#6a4a2a"/><circle cx="620" cy="175" r="26" fill="#4a8a3d"/><rect x="616" y="196" width="8" height="20" fill="#6a4a2a"/>`;
+    s+=`<g><circle cx="230" cy="225" r="13" fill="#e8b890"/><rect x="217" y="238" width="26" height="38" rx="7" fill="#c8402a"/><rect x="220" y="276" width="9" height="20" rx="3" fill="#3a3a3a"/><rect x="232" y="276" width="9" height="20" rx="3" fill="#3a3a3a"/></g>`;
+    s+=`<g><circle cx="270" cy="225" r="13" fill="#f2c9a0"/><rect x="257" y="238" width="26" height="38" rx="7" fill="#2b4a6f"/><rect x="260" y="276" width="9" height="20" rx="3" fill="#3a3a3a"/><rect x="272" y="276" width="9" height="20" rx="3" fill="#3a3a3a"/></g>`;
+    s+=`<rect x="320" y="292" width="40" height="18" rx="8" fill="#2b4a6f"/><line x1="330" y1="292" x2="350" y2="292" stroke="#1e3a5f" stroke-width="2"/>`;
+    s+=`<rect x="370" y="280" width="8" height="14" rx="2" fill="#5b8dc9"/><rect x="382" y="280" width="8" height="14" rx="2" fill="#3d7a4a"/>`;
+    s+=`<rect x="60" y="120" width="6" height="180" fill="#888"/><rect x="50" y="112" width="26" height="10" rx="4" fill="#ffd94d"/><circle cx="63" cy="126" r="6" fill="#ffd94d" opacity="0.7"/>`;
+  }
+  if(loc==="street"){
+    /* 斑马线、路灯、树、自行车、垃圾桶、长椅、小卖部招牌、井盖、电线杆 */
+    for(let i=0;i<6;i++) s+=`<rect x="${40+i*60}" y="312" width="24" height="56" rx="2" fill="#fff" opacity="0.85"/>`;
+    s+=`<rect x="388" y="150" width="6" height="150" fill="#5a5a5a"/><rect x="368" y="142" width="24" height="10" rx="4" fill="#ffd94d"/><circle cx="380" cy="156" r="8" fill="#ffd94d" opacity="0.5"/>`;
+    s+=`<circle cx="345" cy="200" r="25" fill="#3d7a4a"/><rect x="342" y="220" width="6" height="80" fill="#6a4a2a"/>`;
+    s+=`<circle cx="315" cy="295" r="12" fill="none" stroke="#2b2620" stroke-width="2.5"/><circle cx="355" cy="295" r="12" fill="none" stroke="#2b2620" stroke-width="2.5"/><line x1="315" y1="295" x2="335" y2="272" stroke="#2b2620" stroke-width="2"/><line x1="335" y1="272" x2="355" y2="295" stroke="#2b2620" stroke-width="2"/><line x1="335" y1="272" x2="330" y2="262" stroke="#2b2620" stroke-width="2"/>`;
+    s+=`<rect x="22" y="268" width="26" height="32" rx="4" fill="#5a7a5a"/><rect x="20" y="262" width="30" height="8" rx="3" fill="#4a6a4a"/>`;
+    s+=`<rect x="180" y="272" width="80" height="12" rx="4" fill="#8a6a4a"/><rect x="186" y="284" width="8" height="16" fill="#6a4a2a"/><rect x="246" y="284" width="8" height="16" fill="#6a4a2a"/>`;
+    s+=`<rect x="70" y="148" width="90" height="20" rx="4" fill="#c8402a"/><text x="115" y="163" font-size="12" fill="#fff" text-anchor="middle">小卖部</text>`;
+    s+=`<circle cx="210" cy="345" r="10" fill="#4a4a4a"/><circle cx="210" cy="345" r="5" fill="#5a5a5a"/>`;
+    s+=`<rect x="24" y="120" width="6" height="180" fill="#5a4a3a"/><line x1="14" y1="140" x2="40" y2="140" stroke="#5a4a3a" stroke-width="3"/><line x1="27" y1="140" x2="200" y2="130" stroke="#5a4a3a" stroke-width="1.5"/>`;
+  }
+  if(loc==="shop"){
+    /* 商店左半填满：左货架、挂着的货物、价签、柜台边的摊主、柜台前的顾客、找零盘、挂着的塑料袋、门口地垫 */
+    s+=`<rect x="12" y="120" width="56" height="150" rx="4" fill="#8a6a4a"/><line x1="12" y1="160" x2="68" y2="160" stroke="#6a4a2a" stroke-width="3"/><line x1="12" y1="200" x2="68" y2="200" stroke="#6a4a2a" stroke-width="3"/><line x1="12" y1="240" x2="68" y2="240" stroke="#6a4a2a" stroke-width="3"/><rect x="18" y="138" width="14" height="18" rx="2" fill="#e8b04a"/><rect x="38" y="136" width="14" height="20" rx="2" fill="#c8402a"/><rect x="18" y="176" width="14" height="20" rx="2" fill="#3d7a4a"/><rect x="38" y="178" width="14" height="18" rx="2" fill="#5b8dc9"/><rect x="18" y="216" width="14" height="20" rx="2" fill="#8a6a9a"/><rect x="38" y="214" width="14" height="22" rx="2" fill="#e8913a"/>`;
+    s+=`<line x1="100" y1="112" x2="320" y2="112" stroke="#8a8172" stroke-width="2"/><rect x="120" y="112" width="22" height="28" rx="3" fill="#e8b04a"/><rect x="180" y="112" width="22" height="28" rx="3" fill="#c8402a"/><rect x="240" y="112" width="22" height="28" rx="3" fill="#3d7a4a"/><rect x="300" y="112" width="22" height="28" rx="3" fill="#5b8dc9"/>`;
+    s+=`<rect x="120" y="210" width="22" height="12" rx="2" fill="#fff" stroke="#d8d0bd"/><rect x="200" y="210" width="22" height="12" rx="2" fill="#fff" stroke="#d8d0bd"/><rect x="280" y="210" width="22" height="12" rx="2" fill="#fff" stroke="#d8d0bd"/>`;
+    /* 摊主站在柜台边上（柜台上的货占满了台面，他站在台子右边，朝向顾客） */
+    s+=`<circle cx="360" cy="178" r="13" fill="#e8b890"/><rect x="345" y="191" width="30" height="70" rx="7" fill="#3d7a4a"/><rect x="350" y="196" width="20" height="34" rx="3" fill="#f2ead0"/><line x1="348" y1="210" x2="330" y2="222" stroke="#3d7a4a" stroke-width="4" stroke-linecap="round"/><circle cx="329" cy="223" r="3.5" fill="#e8b890"/>`;
+    /* 顾客站在柜台前，手里提着篮子 */
+    s+=`<circle cx="170" cy="225" r="12" fill="#f2c9a0"/><rect x="157" y="237" width="26" height="42" rx="7" fill="#8a6a9a"/><rect x="140" y="252" width="22" height="16" rx="3" fill="#8a6a4a"/><circle cx="148" cy="250" r="4" fill="#e8913a"/><circle cx="156" cy="250" r="4" fill="#3d7a4a"/>`;
+    s+=`<rect x="280" y="200" width="30" height="8" rx="3" fill="#c9b896"/>`;
+    s+=`<line x1="395" y1="150" x2="395" y2="170" stroke="#8a8172" stroke-width="2"/><rect x="386" y="170" width="18" height="26" rx="3" fill="#f2ead0" opacity="0.9"/><rect x="404" y="170" width="18" height="26" rx="3" fill="#e8b04a" opacity="0.9"/>`;
+    s+=`<rect x="150" y="312" width="100" height="14" rx="4" fill="#7a6a5a"/><rect x="156" y="315" width="88" height="8" rx="3" fill="#8a7a6a"/>`;
+  }
+  if(loc==="living"){
+    /* 阳台门、阳台植物、全家福相框、沙发靠垫、绿植 */
+    s+=`<rect x="680" y="120" width="100" height="180" rx="6" fill="#cfe3f2" stroke="#8aa" stroke-width="2"/><line x1="730" y1="120" x2="730" y2="300" stroke="#8aa" stroke-width="2"/><circle cx="722" cy="210" r="3" fill="#5e4632"/><circle cx="738" cy="210" r="3" fill="#5e4632"/>`;
+    s+=`<rect x="700" y="272" width="24" height="20" rx="3" fill="#c8402a"/><circle cx="706" cy="264" r="8" fill="#3d7a4a"/><circle cx="716" cy="260" r="7" fill="#4a8a3d"/>`;
+    s+=`<rect x="250" y="110" width="60" height="50" rx="4" fill="#fff" stroke="#8a8172"/><circle cx="270" cy="130" r="8" fill="#e8b890"/><circle cx="290" cy="130" r="8" fill="#f2c9a0"/><circle cx="280" cy="142" r="6" fill="#e8b890"/>`;
+    s+=`<rect x="120" y="238" width="40" height="24" rx="6" fill="#e8b04a"/><rect x="180" y="240" width="36" height="22" rx="6" fill="#5b8dc9"/>`;
+    s+=`<rect x="630" y="262" width="34" height="30" rx="4" fill="#8a6a4a"/><circle cx="642" cy="252" r="10" fill="#3d7a4a"/><circle cx="656" cy="248" r="9" fill="#4a8a3d"/>`;
+  }
+  if(loc==="park"){
+    /* 第二条长椅、石头路、花丛 */
+    s+=`<rect x="500" y="252" width="80" height="12" rx="4" fill="#8a6a4a"/><rect x="506" y="264" width="8" height="26" fill="#6a4a2a"/><rect x="566" y="264" width="8" height="26" fill="#6a4a2a"/>`;
+    s+=`<ellipse cx="470" cy="312" rx="22" ry="7" fill="#b8b0a0"/><ellipse cx="540" cy="318" rx="22" ry="7" fill="#b8b0a0"/><ellipse cx="620" cy="312" rx="22" ry="7" fill="#b8b0a0"/><ellipse cx="700" cy="318" rx="22" ry="7" fill="#b8b0a0"/>`;
+    s+=`<circle cx="700" cy="292" r="7" fill="#c8402a"/><circle cx="720" cy="296" r="7" fill="#e8b04a"/><circle cx="740" cy="292" r="7" fill="#8a6a9a"/><circle cx="760" cy="296" r="7" fill="#c8402a"/>`;
+  }
+  if(loc==="station"){
+    /* 行李箱、候车椅、时刻表 */
+    s+=`<rect x="200" y="268" width="35" height="32" rx="4" fill="#2b4a6f"/><rect x="210" y="260" width="15" height="9" rx="3" fill="none" stroke="#2b4a6f" stroke-width="3"/><circle cx="208" cy="302" r="3" fill="#2b2620"/><circle cx="228" cy="302" r="3" fill="#2b2620"/>`;
+    s+=`<rect x="400" y="292" width="120" height="10" rx="4" fill="#8a6a4a"/><rect x="408" y="302" width="8" height="10" fill="#6a4a2a"/><rect x="504" y="302" width="8" height="10" fill="#6a4a2a"/>`;
+    s+=`<rect x="600" y="120" width="100" height="60" rx="4" fill="#fff" stroke="#8a8172"/><text x="650" y="140" font-size="11" fill="#1e3a5f" text-anchor="middle">时刻表</text><line x1="610" y1="150" x2="690" y2="150" stroke="#d8d0bd"/><line x1="610" y1="162" x2="690" y2="162" stroke="#d8d0bd"/><line x1="610" y1="172" x2="690" y2="172" stroke="#d8d0bd"/>`;
+  }
+  return s;
+}
+
+/* ---------- 姓名 pill 错开 ---------- */
+/* v3PillDy(x, others)：x 是这块名字标签的世界坐标 x，others 是别的标签的世界坐标 x。
+   100px 内有别的标签就上移（32 屏幕像素，见函数内注释）——标签 68–84 宽，100px 的阈值留了余量。 */
+function v3PillDy(x, others, sc){
+  /* 上移量按屏幕像素算：两个标签几乎贴在一起时，只挪几像素不够——
+     得把这块标签的底边挪到另一块标签的顶边之上，约 32 屏幕像素。
+     dy 写在缩放过的 <g> 里，要除以人物的缩放倍数 sc 才是屏幕上的距离。 */
+  const step=Math.ceil(32/(sc||1));
+  for(const o of (others||[])){ if(Math.abs(o-x)<100) return -step; }
+  return 0;
+}
+
+/* ---------- E5：镜头两边 70px 渐隐 ---------- */
+/* sceneEdgeFadeSVG(vx, vw, edgeCol, groundCol)：在 viewBox 左右各贴一条 70px 的渐隐带，
+   把卡在镜头边缘的半截建筑/半截树融进背景里。edgeCol 是上半部分的背景色
+   （室内是墙色，室外是天色），groundCol 是地面色。渐变只盖边缘 70px，
+   中间的主人公不受影响（镜头平时跟在他身后，他在画面中间）。 */
+function sceneEdgeFadeSVG(vx, vw, edgeCol, groundCol){
+  return `<defs>`
+    +`<linearGradient id="v3fadeL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${edgeCol}" stop-opacity="1"/><stop offset="1" stop-color="${edgeCol}" stop-opacity="0"/></linearGradient>`
+    +`<linearGradient id="v3fadeR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="${edgeCol}" stop-opacity="1"/><stop offset="1" stop-color="${edgeCol}" stop-opacity="0"/></linearGradient>`
+    +`<linearGradient id="v3fadeLg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${groundCol}" stop-opacity="1"/><stop offset="1" stop-color="${groundCol}" stop-opacity="0"/></linearGradient>`
+    +`<linearGradient id="v3fadeRg" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="${groundCol}" stop-opacity="1"/><stop offset="1" stop-color="${groundCol}" stop-opacity="0"/></linearGradient>`
+    +`</defs>`
+    +`<rect x="${vx}" y="0" width="70" height="300" fill="url(#v3fadeL)"/><rect x="${vx+vw-70}" y="0" width="70" height="300" fill="url(#v3fadeR)"/>`
+    +`<rect x="${vx}" y="300" width="70" height="80" fill="url(#v3fadeLg)"/><rect x="${vx+vw-70}" y="300" width="70" height="80" fill="url(#v3fadeRg)"/>`;
+}
+
+/* ============================================================================
+ * 补丁块（给总协调按 INTEGRATION.md 逐块替换；每块的 ANCHOR 在底本里恰好出现 1 次）
+ * 顺序依赖见 INTEGRATION.md：场景先合、引擎后合——E1 插入行放在引擎 F1-02
+ * 替换块的后面（tickActivity 末尾），读最终 pxTarget，引擎替换后仍在。
+ * ========================================================================== */
+
 function sceneProps(loc, act){
   const p=focus();
   const night=(worldDate().h<6||worldDate().h>=20);
@@ -2869,7 +4044,7 @@ function sceneProps(loc, act){
     study:`<rect x="80" y="240" width="220" height="18" fill="#8a6a4a"/><rect x="90" y="258" width="12" height="40" fill="#6a4a2a"/><rect x="280" y="258" width="12" height="40" fill="#6a4a2a"/><rect x="520" y="120" width="120" height="170" fill="#7a5a3a"/><rect x="530" y="135" width="100" height="14" fill="#c8402a"/><rect x="530" y="165" width="100" height="14" fill="#2b4a6f"/><rect x="530" y="195" width="100" height="14" fill="#3d7a4a"/>`,
     kindergarten:`<circle cx="120" cy="150" r="26" fill="#ffd94d"/><circle cx="220" cy="120" r="26" fill="#ff9a9a"/><circle cx="320" cy="150" r="26" fill="#9fd0e8"/><rect x="60" y="230" width="300" height="14" fill="#8a6a4a"/>`,
     street:`<rect x="0" y="300" width="800" height="80" fill="#5a5a5a"/><rect x="0" y="336" width="800" height="6" fill="#ffd94d" stroke-dasharray="20 14"/><rect x="60" y="140" width="110" height="160" fill="#9a8a7a"/><rect x="200" y="110" width="130" height="190" fill="#7a8a9a"/><rect x="620" y="150" width="110" height="150" fill="#8a7a6a"/>`,
-    park:`<circle cx="140" cy="180" r="55" fill="#3d7a4a"/><rect x="132" y="220" width="16" height="70" fill="#6a4a2a"/><circle cx="660" cy="170" r="60" fill="#4a8a3d"/><rect x="652" y="220" width="16" height="70" fill="#6a4a2a"/><rect x="330" y="250" width="140" height="16" rx="6" fill="#8a6a4a"/><ellipse cx="400" cy="330" rx="150" ry="22" fill="#7ab8d8"/>`,
+    park:`<circle cx="140" cy="180" r="55" fill="#3d7a4a"/><rect x="132" y="220" width="16" height="70" fill="#6a4a2a"/><circle cx="660" cy="170" r="60" fill="#4a8a3d"/><rect x="652" y="220" width="16" height="70" fill="#6a4a2a"/><rect x="470" y="250" width="140" height="16" rx="6" fill="#8a6a4a"/><rect x="482" y="266" width="10" height="26" fill="#6a4a2a"/><rect x="588" y="266" width="10" height="26" fill="#6a4a2a"/><ellipse cx="400" cy="330" rx="150" ry="22" fill="#7ab8d8"/>`,
     shop:`<rect x="80" y="200" width="240" height="90" rx="8" fill="#a89878"/><rect x="100" y="150" width="60" height="50" fill="#e8b04a"/><rect x="180" y="150" width="60" height="50" fill="#c8402a"/><rect x="260" y="150" width="60" height="50" fill="#3d7a4a"/><rect x="480" y="120" width="180" height="170" fill="#c9b896"/><rect x="500" y="140" width="140" height="16" fill="#8a6a4a"/><rect x="500" y="180" width="140" height="16" fill="#8a6a4a"/>`,
     netcafe:`<rect x="80" y="220" width="640" height="14" fill="#3a3a3a"/><rect x="120" y="170" width="70" height="50" fill="#223"/><rect x="130" y="180" width="50" height="30" fill="#4a8fd8"/><rect x="300" y="170" width="70" height="50" fill="#223"/><rect x="310" y="180" width="50" height="30" fill="#c8402a"/><rect x="480" y="170" width="70" height="50" fill="#223"/><rect x="490" y="180" width="50" height="30" fill="#3d7a4a"/>`,
     library:`<rect x="80" y="110" width="140" height="180" fill="#7a5a3a"/><rect x="90" y="130" width="120" height="12" fill="#c8402a"/><rect x="90" y="160" width="120" height="12" fill="#2b4a6f"/><rect x="580" y="110" width="140" height="180" fill="#7a5a3a"/><rect x="590" y="130" width="120" height="12" fill="#3d7a4a"/><rect x="590" y="160" width="120" height="12" fill="#e8b04a"/><rect x="300" y="240" width="200" height="14" fill="#8a6a4a"/>`,
@@ -2896,6 +4071,7 @@ function sceneProps(loc, act){
   /* C4：睡觉 —— 床头灯亮着（卧室本体已在 bedroomSVG 里，这里只补灯光） */
   if(act&&act.kind==="sleep"&&night) extra+=`<circle cx="268" cy="228" r="16" fill="#ffd94d" opacity="0.25"/>`;
   if(typeof interactSceneExtra==="function") extra+=interactSceneExtra(S.interactKey,loc,act);
+  extra+=scenePropsExtraB1(loc, act);
   return base+extra;
 }
 function renderScene(){
@@ -2956,7 +4132,9 @@ function renderScene(){
     const x=(_tk.kind==="spouse"||_tk.kind==="lover")?clamp(S.px-400-64,40,740):140+i*180, s2=stageScale(ageYears(q));
     const rel=p.rels[q.id]?p.rels[q.id].v:50;
     const touch=socialTouch(p,q,x).svg||"";
-    return `<g transform="translate(${x},292) scale(${s2})" opacity="0.92"><rect x="-34" y="-88" width="68" height="16" rx="8" fill="rgba(0,0,0,0.55)"/><text x="0" y="-76" font-size="11" fill="#fff" text-anchor="middle">${q.name}</text><circle cx="0" cy="-52" r="15" fill="#e8b890"/><rect x="-13" y="-36" width="26" height="40" rx="7" fill="#8a9a6a"/></g>${touch}`;
+    /* [小修：姓名 pill 偶尔互压] NPC 的名字标签离主人公的标签不到 100px 就上移（32 屏幕像素，见 v3PillDy）。 */
+    const dy=v3PillDy(x+400,[S.px],s2);
+    return `<g transform="translate(${x},292) scale(${s2})" opacity="0.92"><rect x="-36" y="${-92+dy}" width="72" height="22" rx="8" fill="#1f1b16"/><text x="0" y="${-76+dy}" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">${q.name}</text><circle cx="0" cy="-52" r="15" fill="#e8b890"/><rect x="-13" y="-36" width="26" height="40" rx="7" fill="#8a9a6a"/></g>${touch}`;
   }).join("");
   /* 路过的行人（世界在他之外也在运转）—— 只在户外；家里不会有陌生人路过 */
   const passers=((p.travel&&p.travel.mode==="汽车")||INDOOR_LOCS.includes(locKey))?"":(()=>{ 
@@ -2964,10 +4142,17 @@ function renderScene(){
     if(!com.length) return "";
     const a=com[dayCount()%com.length], b=com[(dayCount()+3)%com.length];
     const x1=(dayCount()*37%1400)+60, x2=1500-(dayCount()*53%1400);
-    return drawPerson(a, x1, 300, {scale:.9, walking:true, label:a.name, outfit:"casual"}) + drawPerson(b, x2, 300, {scale:.9, walking:true, label:b.name, outfit:"casual"});
+    /* [小修：姓名 pill 偶尔互压] 路人标签：离主人公或别的 NPC 不到 100px 就上移（32 屏幕像素）；
+       第二个路人离第一个路人也近时再多移 26——两个标签不能一起移，一起移还是压着。 */
+    const _npcXs=nearby.map((q,i)=>{const _k=socialTouch(p,q).kind;return ((_k==="spouse"||_k==="lover")?clamp(S.px-400-64,40,740):140+i*180)+400;});
+    const _aDy=v3PillDy(x1,[S.px].concat(_npcXs),0.9*stageScale(ageYears(a)));
+    const _bDy=v3PillDy(x2,[S.px].concat(_npcXs),0.9*stageScale(ageYears(b)))+v3PillDy(x2,[x1],0.9*stageScale(ageYears(b)));
+    return drawPerson(a, x1, 300, {scale:.9, walking:true, label:a.name, labelDy:_aDy, outfit:"casual"}) + drawPerson(b, x2, 300, {scale:.9, walking:true, label:b.name, labelDy:_bDy, outfit:"casual"});
   })();
-  const weatherSvg=w.weather==="雨"?`<g stroke="#9fc4e8" stroke-width="2" opacity="0.7">${[80,200,320,440,560,680,900,1100,1300,1500].map(x=>`<line x1="${x}" y1="40" x2="${x-14}" y2="110"/>`).join("")}</g>`:w.weather==="雪"?`<g fill="#fff">${[90,230,370,510,650,730,900,1100,1300,1500].map(x=>`<circle cx="${x}" cy="${60+(x%90)}" r="4"/>`).join("")}</g>`:`<g fill="#fff" opacity="0.85"><ellipse cx="180" cy="70" rx="60" ry="18"/><ellipse cx="560" cy="50" rx="70" ry="20"/><ellipse cx="1200" cy="60" rx="70" ry="18"/></g>`;
-  const sunMoon=INDOOR_LOCS.includes(locKey)?"":night?`<circle cx="${moonX}" cy="80" r="26" fill="#f2ead0"/><circle cx="${moonX-10}" cy="74" r="5" fill="#d8c9a0"/><circle cx="${moonX+8}" cy="88" r="4" fill="#d8c9a0"/>`:`<circle cx="${Math.max(60,Math.min(1540,sunX))}" cy="${sunY}" r="30" fill="#ffd94d"/>`;
+  const weatherSvg=w.weather==="雨"?`<g id="ambRain" stroke="#7fb2dd" stroke-width="2.5" opacity="0.8">${[60,155,250,345,440,535,630,725,820,915,1010,1105,1200,1295,1390,1485].map(x=>`<line class="amb-drop" x1="${x}" y1="40" x2="${x-14}" y2="64"/>`).join("")}</g>`:w.weather==="雪"?`<g id="ambSnow" fill="#fff">${[90,230,370,510,650,730,900,1100,1300,1500].map(x=>`<circle class="amb-flake" cx="${x}" cy="${60+(x%90)}" r="4"/>`).join("")}</g>`:`<g id="ambClouds" fill="#fff" opacity="0.85"><ellipse cx="180" cy="70" rx="60" ry="18"/><ellipse cx="560" cy="50" rx="70" ry="20"/><ellipse cx="1200" cy="60" rx="70" ry="18"/></g>`;
+  /* [V2 旧问题] 雨天太阳照常画：下雨/下雪/阴天/大雾时天上看不见太阳，夜里也看不见月亮。
+     多云时太阳还在云层后透出来，留着。 */
+  const sunMoon=(INDOOR_LOCS.includes(locKey)||w.weather==="雨"||w.weather==="雪"||w.weather==="阴"||w.weather==="雾")?"":night?`<circle cx="${moonX}" cy="80" r="26" fill="#f2ead0"/><circle cx="${moonX-10}" cy="74" r="5" fill="#d8c9a0"/><circle cx="${moonX+8}" cy="88" r="4" fill="#d8c9a0"/>`:`<circle cx="${Math.max(60,Math.min(1540,sunX))}" cy="${sunY}" r="30" fill="#ffd94d"/>`;
   const roomWall={bedroom:"#e8dcc8",living:"#efe6d2",kitchen:"#e8e0d0",study:"#e8e2d2",school:"#dce8d8",university:"#dce8d8",kindergarten:"#f2e8d0",shop:"#e8e0d0",netcafe:"#2b2b33",library:"#e8e2d2",hospital:"#eef4f8",company:"#e8ecf2",army:"#d8dcc8",prison:"#c9c9c9",station:"#d8e0ea"}[locKey]||"#efe6d2";
   const indoor=INDOOR_LOCS.includes(locKey);
   const vw=800/S.camZoom, vx=clamp(S.camX-vw/2, 0, 1600-vw);
@@ -2985,10 +4170,10 @@ function renderScene(){
   $("#sceneHost").innerHTML=`<svg id="scene" viewBox="${vx} 0 ${vw} 380" preserveAspectRatio="xMidYMid slice">
     <rect width="1600" height="300" fill="${sky}"/>${sunMoon}${weatherSvg}
     <rect y="300" width="1600" height="80" fill="${ground}"/>
-    <g opacity="0.9"><rect x="60" y="180" width="120" height="120" fill="#9a8a7a"/><rect x="1420" y="160" width="130" height="140" fill="#7a8a9a"/><circle cx="1200" cy="200" r="40" fill="#3d7a4a"/><rect x="1194" y="230" width="12" height="60" fill="#6a4a2a"/><text x="120" y="170" font-size="13" fill="#fff">小卖部</text><text x="1470" y="150" font-size="13" fill="#fff">早餐店</text></g>
+    <g opacity="0.9"><rect x="60" y="180" width="120" height="120" fill="#9a8a7a"/><rect x="1420" y="160" width="130" height="140" fill="#7a8a9a"/><g id="ambTree"><circle cx="1240" cy="200" r="40" fill="#3d7a4a"/><rect x="1234" y="230" width="12" height="60" fill="#6a4a2a"/></g><text x="120" y="170" font-size="13" fill="#fff">小卖部</text><text x="1470" y="150" font-size="13" fill="#fff">早餐店</text></g>
     ${passers}
-    ${busCabin?busCabin:(indoor?`<g transform="translate(400,0)"><rect width="800" height="300" fill="${roomWall}"/>${sceneProps(locKey, act)}${npcFigs}${parentFigs}</g>`:`<g transform="translate(400,0)">${sceneProps(locKey, act)}${npcFigs}</g>`)}
-    ${figShown}
+    ${busCabin?busCabin:(indoor?`<g transform="translate(400,0)"><rect x="-400" width="1600" height="300" fill="${roomWall}"/>${sceneProps(locKey, act)}${npcFigs}${parentFigs}</g>`:`<g transform="translate(400,0)">${sceneProps(locKey, act)}${npcFigs}</g>`)}
+    <g id="ambProtag">${figShown}</g>${typeof sceneEdgeFadeSVG==="function"?sceneEdgeFadeSVG(vx, vw, indoor?roomWall:sky, ground):""}
     ${night?`<rect width="1600" height="380" fill="#0a1030" opacity="0.28"/>`:""}
   </svg>`;
   const sound=ambientSound(p.loc,h,w.weather);
@@ -3374,9 +4559,14 @@ function renderNowNext(){
   const p=focus(); if(!p)return;
   const act=S.act;
   const next=guessNext(p);
+  // J1：干预入口藏在“接下来可能”里——可点词句是散文的一部分，不是按钮。
+  // 只有需要真实存在时才出现（ivProseHTML），用过当天消失。
   $("#nowNext").innerHTML = act
-    ? `<div>正在：<b>${act.act}</b>——${act.detail||""}</div><div class="why">${act.reason||""}</div><div>接下来可能：${next}</div>`
-    : `<div>正在发呆……</div><div>接下来可能：${next}</div>`;
+    ? `<div>正在：<b>${act.act}</b>——${act.detail||""}</div><div class="why">${act.reason||""}</div><div>接下来可能：${next}${ivProseHTML(p)}</div>`
+    : `<div>正在发呆……</div><div>接下来可能：${next}${ivProseHTML(p)}</div>`;
+  // K1：因果条——静态文字条，放在“正在做”下面（#nowNext 之外），不盖画面，不用 absolute
+  const cb=$("#causebar");
+  if(cb){const t=causeText(p);cb.style.display=t?"block":"none";if(t)cb.textContent="🔗 "+t;}
 }
 function guessNext(p){
   const A=p.attrs, h=worldDate().h, age=ageYears(p);
@@ -3390,27 +4580,314 @@ function guessNext(p){
 }
 /* ============ 渲染：地图 / 面板 ============ */
 function fmtPopWan(n){return n>=10000?(n/10000).toFixed(1)+"亿人":n>=100?n+"万人":(n*10000).toLocaleString()+"人";}
-function renderMap(){
-  const p=focus(); if(!p)return;
-  const cols=["#dbe9f6","#e8f0e0","#f6e8d8","#efe4f2","#e0f0ee","#f2ead8"];
-  const blocks=COUNTRIES.map((c,i)=>{
-    const x=(i%4)*200, y=Math.floor(i/4)*92;
-    const here=c.id===p.country;
-    return `<g><rect x="${x+4}" y="${y+4}" width="192" height="84" rx="10" fill="${here?"#1e3a5f":cols[i%6]}" stroke="${here?"#c8402a":"#d8d0bd"}" stroke-width="${here?3:1}"/>
-    <text x="${x+14}" y="${y+28}" font-size="14" font-weight="700" fill="${here?"#fff":"#2b2620"}">${c.name}${here?" 📍":""}</text>
-    <text x="${x+14}" y="${y+50}" font-size="12" fill="${here?"#cfe0f2":"#5e554a"}">人口 ${c.pop}亿 · 经济${c.econ}</text>
-    <text x="${x+14}" y="${y+70}" font-size="11" fill="${here?"#cfe0f2":"#8a8172"}">${c.cities.map(ci=>ci.name).join(" · ")}</text></g>`;
+/* ============================================================================
+ * 一方小世界 V3 · I1 世界示意地图模块（map.js）
+ * ----------------------------------------------------------------------------
+ * 做的事：把 V2 的 12 张文字卡片（renderMap 里的 4×3 色块）换成一张
+ * 1100×620 的示意 SVG 地图：海 + 12 国多边形拼合 + 40 城市圆点 +
+ * 主人公红标红字 + 旅行虚线 + 图例 / 指北针 / 比例尺。
+ *
+ * 造物主铁律：这是一张“世界本来就有的地图”，不是游戏 UI。
+ * 位置与大小均为示意，非真实比例；国家人口、城市人口、气候、文化、
+ * 机场/地铁/火车站等数据一律不动，全部沿用底本 COUNTRIES。
+ * 本文件只补几何（多边形、城市坐标、国名锚点、标签偏移），不改任何数据。
+ *
+ * 用法：按 map.INTEGRATION.md 的锚点把本文件内容替换进底本
+ * （替换掉旧的 renderMap 函数，位置不变），或用 build-test-map.mjs
+ * 生成测试页 test-map.html 验证。
+ * node --check map.js 应通过；require(map.js) 可在 node 里跑几何校验。
+ * ==========================================================================*/
+
+/* ---- 地图几何：每个国家一个多边形（示意拼合，互不重叠）--------------
+ * poly: [x,y] 顶点，顺时针；label: 国名文字锚点 [x,y]（居中）；
+ * cities: 城市名 -> [x, y, 标签dx, 标签dy, 标签anchor]。
+ * 城市只标人口 >=100万（查底本 COUNTRIES 的 pop，不在本文件重复数据）；
+ * 人口 <100万的小城/镇/村只画圆点，不标名字。
+ * 坐标系：viewBox 0 0 1100 620。北在上。 */
+const MAP_GEO = {
+  viewBox: "0 0 1100 620",
+  sea: "#b7d6e8",
+  countries: [
+    { id: "yunlan", color: "#d9ead0",
+      poly: [[310,205],[520,220],[580,350],[460,400],[330,360]],
+      label: [415,245],
+      cities: {
+        "云京": [420,280,8,4,"start"], "澜海": [500,320,8,4,"start"],
+        "江城": [380,330,-8,4,"end"], "枫林": [480,260,8,4,"start"],
+        "青石": [350,300], "桃源村": [430,360] } },
+    { id: "eagle", color: "#d3e4f5",
+      poly: [[95,115],[350,88],[555,98],[700,155],[520,220],[310,205]],
+      label: [400,122],
+      cities: {
+        "鹰都": [300,150,8,4,"start"], "铁港": [480,140,8,4,"start"],
+        "麦田": [380,185,8,4,"start"], "湖畔": [600,180,-8,4,"end"],
+        "岩镇": [155,138], "橡树村": [250,168] } },
+    { id: "sakura", color: "#f7cfd6",
+      poly: [[820,120],[880,150],[895,260],[860,330],[815,280],[800,190]],
+      label: [848,158],
+      cities: {
+        "樱都": [845,180,8,4,"start"], "山城": [835,235,8,4,"start"],
+        "茶乡": [860,260,-8,4,"end"], "海湾": [850,300,8,4,"start"],
+        "渔村": [855,312], "枫叶村": [830,150] } },
+    { id: "sand", color: "#f3ddb0",
+      poly: [[115,395],[240,420],[250,445],[300,520],[180,545],[90,480]],
+      label: [195,522],
+      cities: {
+        "金沙城": [200,470,8,4,"start"], "绿洲": [230,500,8,4,"start"],
+        "沙丘镇": [140,480] } },
+    { id: "rain", color: "#fde9b8",
+      poly: [[330,360],[460,400],[580,350],[665,415],[460,465],[360,455]],
+      label: [595,438],
+      cities: {
+        "雨林市": [480,410,8,4,"start"], "河口": [580,390,8,4,"start"],
+        "蕉叶镇": [400,430] } },
+    { id: "iron", color: "#e6ded2",
+      poly: [[95,115],[310,205],[330,360],[240,420],[115,395],[65,255]],
+      label: [195,235],
+      cities: {
+        "铁都市": [200,280,8,4,"start"], "锻造": [250,330,8,4,"start"],
+        "煤窑镇": [150,340] } },
+    { id: "birch", color: "#ece4f4",
+      poly: [[555,98],[700,155],[735,295],[580,350],[520,220]],
+      label: [625,205],
+      cities: {
+        "白桦城": [620,230,8,4,"start"], "雪原": [680,270],
+        "松林镇": [590,300] } },
+    { id: "coral", color: "#cdeef0",
+      poly: [[830,430],[900,450],[915,500],[870,530],[825,495]],
+      label: [872,452],
+      cities: {
+        "珊瑚城": [870,480,8,4,"start"], "贝壳镇": [855,505] } },
+    { id: "plateau", color: "#ddd3ee",
+      poly: [[330,360],[360,455],[250,445],[240,420]],
+      label: [300,382],
+      cities: {
+        "高原城": [300,405,8,4,"start"], "牦牛镇": [320,430] } },
+    { id: "coconut", color: "#cfe8c9",
+      poly: [[620,520],[700,505],[740,545],[690,575],[630,560]],
+      label: [682,522],
+      cities: {
+        "椰城": [680,540,8,4,"start"], "沙滩镇": [650,555] } },
+    { id: "tundra", color: "#e8edf5",
+      poly: [[420,30],[520,20],[560,45],[480,60],[420,50]],
+      label: [490,30],
+      cities: {
+        "苔原城": [490,42,8,4,"start"], "冰原镇": [440,45] } },
+    { id: "honey", color: "#f9d976",
+      poly: [[960,480],[1030,470],[1065,505],[1040,545],[980,540],[950,510]],
+      label: [1010,488],
+      cities: {
+        "蜜糖城": [1010,505,8,4,"start"], "花田镇": [985,525] } },
+  ],
+};
+
+/* ---- 纯几何工具（不依赖底本，node 里也能跑）---- */
+function mapPointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function mapSegsCross(a, b, c, d) {
+  /* 只算“真交叉”（两线段在各自内部相交）。端点相接、共线重合都
+   * 是拼合地图里合法的公共边界，不是重叠，所以 d 为 0 时不算。 */
+  const d1 = (d[0] - c[0]) * (a[1] - c[1]) - (d[1] - c[1]) * (a[0] - c[0]);
+  const d2 = (d[0] - c[0]) * (b[1] - c[1]) - (d[1] - c[1]) * (b[0] - c[0]);
+  const d3 = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const d4 = (b[0] - a[0]) * (d[1] - a[1]) - (b[1] - a[1]) * (d[0] - a[0]);
+  if (d1 === 0 || d2 === 0 || d3 === 0 || d4 === 0) return false;
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+}
+function mapPointOnSeg(px, py, a, b) {
+  const cross = (b[0] - a[0]) * (py - a[1]) - (b[1] - a[1]) * (px - a[0]);
+  if (cross !== 0) return false;
+  return px >= Math.min(a[0], b[0]) && px <= Math.max(a[0], b[0])
+      && py >= Math.min(a[1], b[1]) && py <= Math.max(a[1], b[1]);
+}
+function mapPointStrictlyInPoly(x, y, poly) {
+  /* 在边界上（公共边/公共顶点）不算“在内”，只算严格在内部。 */
+  for (let i = 0; i < poly.length; i++)
+    if (mapPointOnSeg(x, y, poly[i], poly[(i + 1) % poly.length])) return false;
+  return mapPointInPoly(x, y, poly);
+}
+function mapPolysOverlap(p1, p2) {
+  for (let i = 0; i < p1.length; i++)
+    for (let j = 0; j < p2.length; j++)
+      if (mapSegsCross(p1[i], p1[(i + 1) % p1.length], p2[j], p2[(j + 1) % p2.length])) return true;
+  if (mapPointStrictlyInPoly(p1[0][0], p1[0][1], p2) || mapPointStrictlyInPoly(p2[0][0], p2[0][1], p1)) return true;
+  return false;
+}
+/* 几何自检：40 城市全在各自国家境内；12 国多边形两两互不重叠。 */
+function mapValidate() {
+  const geos = MAP_GEO.countries;
+  const cities = [];
+  const outside = [];
+  for (const c of geos)
+    for (const name of Object.keys(c.cities)) {
+      const xy = c.cities[name];
+      cities.push({ country: c.id, name, x: xy[0], y: xy[1] });
+      if (!mapPointInPoly(xy[0], xy[1], c.poly)) outside.push(c.id + "/" + name);
+    }
+  const overlaps = [];
+  for (let i = 0; i < geos.length; i++)
+    for (let j = i + 1; j < geos.length; j++)
+      if (mapPolysOverlap(geos[i].poly, geos[j].poly)) overlaps.push(geos[i].id + "x" + geos[j].id);
+  return { totalCities: cities.length, countries: geos.length, outside, overlaps };
+}
+
+/* ---- 查坐标（依赖底本 COUNTRIES 的仅是 pop/size，不复制数据）---- */
+function mapGeoCountry(id) { return MAP_GEO.countries.find(c => c.id === id); }
+function mapCityXY(countryId, cityName) {
+  const g = mapGeoCountry(countryId);
+  if (!g || !g.cities[cityName]) return null;
+  return { x: g.cities[cityName][0], y: g.cities[cityName][1] };
+}
+function mapCityGeo(countryId, cityName) {
+  const g = mapGeoCountry(countryId);
+  if (!g || !g.cities[cityName]) return null;
+  const e = g.cities[cityName];
+  return { x: e[0], y: e[1], dx: e[2] || 0, dy: e[3] || 0, anchor: e[4] || "start" };
+}
+/* 在全部 12 国里找一个城市（旅行目的地可能在别国）。 */
+function mapFindCity(cityName) {
+  for (const c of MAP_GEO.countries)
+    if (c.cities[cityName]) return { country: c.id, x: c.cities[cityName][0], y: c.cities[cityName][1] };
+  return null;
+}
+
+/* ---- 主人公红字落点：绝不压住任何国名，也不压住自己城市的城市名 ----
+ * 候选顺序：右上 → 右下 → 左上 → 左下；逐个验算文字框是否撞上国名框
+ * （国名按 13px 粗体估宽）或自己城市的城市名框，且不出画布。
+ * 命中第一个可用的；四个全撞上才退回右上并夹在画布内。
+ * nameBoxes 由调用方（renderMap）从底本 COUNTRIES 查出国名后算出，
+ * 本函数不复制国家名字。 */
+function mapHereLabelPos(hx, hy, cityName, cityLabelBox, nameBoxes) {
+  const text = "他在这里·" + cityName;
+  const w = text.length * 13 + 4;
+  const boxes = (nameBoxes || []).slice();
+  if (cityLabelBox) boxes.push(cityLabelBox);
+  const cands = [[14, -16, "start"], [14, 28, "start"], [-14, -16, "end"], [-14, 28, "end"]];
+  for (const c of cands) {
+    const tx = hx + c[0], ty = hy + c[1];
+    const bx0 = c[2] === "start" ? tx : tx - w, bx1 = c[2] === "start" ? tx + w : tx;
+    const by0 = ty - 14, by1 = ty + 5;
+    if (bx0 < 8 || bx1 > 1092 || by0 < 12 || by1 > 612) continue;
+    const hit = boxes.some(b => bx0 < b.x1 && bx1 > b.x0 && by0 < b.y1 && by1 > b.y0);
+    if (!hit) return { x: tx, y: ty, anchor: c[2], w, rx: bx0 - 4, ry: by0 - 2, rw: w + 8, rh: by1 - by0 + 4 };
+  }
+  const tx = Math.min(Math.max(hx + 14, 12), 1092 - w), ty = hy - 16;
+  return { x: tx, y: ty, anchor: "start", w, rx: tx - 4, ry: ty - 16, rw: w + 8, rh: 23 };
+}
+
+/* ============ 渲染：世界示意地图（替换底本旧 renderMap，位置不变） ============ */
+function renderMap() {
+  const p = focus(); if (!p) return;
+  const cur = countryById(p.country), ci = cityOf(p);
+  const here = mapCityXY(p.country, p.city);
+  const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  let s = `<svg id="worldmap" viewBox="0 0 1100 620" role="img" aria-label="世界示意地图">`;
+  s += `<rect x="0" y="0" width="1100" height="620" fill="${MAP_GEO.sea}"/>`;
+  /* 海面波纹（开阔海域三处，不画在任何陆地上） */
+  s += `<g stroke="#8fb8d8" stroke-width="2" fill="none" opacity="0.8">`
+    + `<path d="M120,590 q8,-7 16,0 q8,7 16,0"/><path d="M700,55 q8,-7 16,0 q8,7 16,0"/>`
+    + `<path d="M955,395 q8,-7 16,0 q8,7 16,0"/></g>`;
+  s += `<text x="16" y="24" font-size="12" fill="#5e554a">世界总人口 80亿 · 12个国家 · 仅列主要城市</text>`;
+  /* 国家多边形 + 国名（每个国家都有名字，不留无名岛） */
+  for (const g of MAP_GEO.countries) {
+    const pts = g.poly.map(q => q.join(",")).join(" ");
+    const isHere = g.id === p.country;
+    s += `<polygon data-country="${g.id}" points="${pts}" fill="${g.color}" stroke="${isHere ? "#c8402a" : "#8a8172"}" stroke-width="${isHere ? 2.5 : 1.2}" stroke-linejoin="round"/>`;
+  }
+  for (const g of MAP_GEO.countries) {
+    const c = countryById(g.id);
+    s += `<text class="cname" data-country="${g.id}" x="${g.label[0]}" y="${g.label[1]}" text-anchor="middle" font-size="13" font-weight="700" fill="#2b2620" style="paint-order:stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">${esc(c ? c.name : g.id)}</text>`;
+  }
+  /* 城市圆点 + 城市名（人口 >=100万才标名，其余只留圆点） */
+  for (const g of MAP_GEO.countries) {
+    const c = countryById(g.id);
+    for (const name of Object.keys(g.cities)) {
+      const geo = mapCityGeo(g.id, name);
+      const cd = c ? c.cities.find(x => x.name === name) : null;
+      const pop = cd ? cd.pop : 0, size = cd ? cd.size : "";
+      const r = size === "特大城市" ? 6 : size === "大城市" ? 5 : size === "中等城市" ? 4 : size === "小城市" ? 3.5 : 2.5;
+      const fill = pop >= 100 ? "#1e3a5f" : "#6f97bd";
+      s += `<circle data-city="${esc(name)}" data-country="${g.id}" cx="${geo.x}" cy="${geo.y}" r="${r}" fill="${fill}" stroke="#ffffff" stroke-width="1"/>`;
+      if (pop >= 100) {
+        const lx = geo.x + geo.dx, ly = geo.y + geo.dy;
+        s += `<text x="${lx}" y="${ly}" text-anchor="${geo.anchor}" font-size="11.5" fill="#2b2620" style="paint-order:stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">${esc(name)}</text>`;
+      }
+    }
+  }
+  /* 旅行虚线：他在路上时，从所在城市画一条虚线到目的地（婴儿不会旅行，
+   * 所以平时看不到这条线；有旅行事件时才出现）。 */
+  if (p.travel) {
+    const dest = mapFindCity(p.travel.to);
+    if (here && dest) {
+      const mx = (here.x + dest.x) / 2, my = (here.y + dest.y) / 2;
+      const dx = dest.x - here.x, dy = dest.y - here.y, len = Math.hypot(dx, dy) || 1;
+      const cx = mx - dy / len * 36, cy = my + dx / len * 36;
+      s += `<path id="travelLine" d="M ${here.x} ${here.y} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${dest.x} ${dest.y}" fill="none" stroke="#c8402a" stroke-width="2" stroke-dasharray="7 5"/>`;
+      s += `<circle cx="${dest.x}" cy="${dest.y}" r="8" fill="none" stroke="#c8402a" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+      s += `<text x="${cx.toFixed(1)}" y="${(cy - 8).toFixed(1)}" text-anchor="middle" font-size="11.5" font-weight="700" fill="#c8402a" style="paint-order:stroke" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">✈ ${esc(p.travel.mode || "")}</text>`;
+    }
+  }
+  /* 主人公红标 + 红字（红字带白底，落点由 mapHereLabelPos 验算，不压国名） */
+  if (here) {
+    let cityBox = null;
+    const geo = mapCityGeo(p.country, p.city);
+    if (geo && ci && ci.pop >= 100) {
+      const cw = p.city.length * 11.5;
+      const lx = geo.x + geo.dx, ly = geo.y + geo.dy;
+      cityBox = geo.anchor === "end"
+        ? { x0: lx - cw - 2, x1: lx + 2, y0: ly - 12, y1: ly + 4 }
+        : { x0: lx - 2, x1: lx + cw + 2, y0: ly - 12, y1: ly + 4 };
+    }
+    const lp = mapHereLabelPos(here.x, here.y, p.city, cityBox,
+      MAP_GEO.countries.map(g => {
+        const cc = countryById(g.id);
+        const nw = (cc ? cc.name : g.id).length * 13.5;
+        return { x0: g.label[0] - nw / 2 - 4, x1: g.label[0] + nw / 2 + 4, y0: g.label[1] - 14, y1: g.label[1] + 5 };
+      }));
+    s += `<g><circle cx="${here.x}" cy="${here.y}" r="9" fill="#ffffff" opacity="0.9"/><circle cx="${here.x}" cy="${here.y}" r="6" fill="#c8402a" stroke="#ffffff" stroke-width="1.5"/>`
+      + `<g id="hereLabel"><rect x="${lp.rx}" y="${lp.ry}" width="${lp.rw}" height="${lp.rh}" rx="4" fill="#ffffff" opacity="0.88" stroke="#c8402a" stroke-width="0.8"/>`
+      + `<text id="hereMark" x="${lp.x}" y="${lp.y}" text-anchor="${lp.anchor}" font-size="13" font-weight="700" fill="#c8402a">他在这里·${esc(p.city)}</text></g></g>`;
+  }
+  /* 指北针（右上） */
+  s += `<g><circle cx="1052" cy="50" r="20" fill="#ffffff" opacity="0.85" stroke="#8a8172" stroke-width="1"/>`
+    + `<polygon points="1052,34 1046,60 1052,54 1058,60" fill="#c8402a"/>`
+    + `<text x="1052" y="26" text-anchor="middle" font-size="12" font-weight="700" fill="#2b2620">N</text></g>`;
+  /* 图例（中下开阔海域，不压陆地） */
+  s += `<g><rect x="320" y="492" width="280" height="114" rx="8" fill="#ffffff" opacity="0.93" stroke="#d8d0bd"/>`
+    + `<text x="336" y="514" font-size="12" font-weight="700" fill="#2b2620">图例</text>`
+    + `<circle cx="340" cy="532" r="6" fill="#c8402a" stroke="#ffffff" stroke-width="1.5"/><text x="352" y="536" font-size="11.5" fill="#2b2620">他在这里</text>`
+    + `<rect x="468" y="526" width="14" height="10" fill="#d9ead0" stroke="#8a8172"/><text x="488" y="536" font-size="11.5" fill="#2b2620">国家（颜色区分）</text>`
+    + `<circle cx="340" cy="554" r="4" fill="#1e3a5f" stroke="#ffffff" stroke-width="1"/><text x="352" y="558" font-size="11.5" fill="#2b2620">城市（标了名字）</text>`
+    + `<circle cx="340" cy="576" r="2.5" fill="#6f97bd" stroke="#ffffff" stroke-width="1"/><text x="352" y="580" font-size="11.5" fill="#2b2620">小城·镇·村（只标圆点）</text>`
+    + `<line x1="330" y1="596" x2="358" y2="596" stroke="#c8402a" stroke-width="2" stroke-dasharray="5 4"/><text x="366" y="600" font-size="11.5" fill="#2b2620">正在旅行（虚线）</text></g>`;
+  /* 比例尺（右下开阔海域；示意，非真实比例） */
+  s += `<g><text x="770" y="588" text-anchor="middle" font-size="11" fill="#2b2620">0</text>`
+    + `<text x="860" y="588" text-anchor="middle" font-size="11" fill="#2b2620">500</text>`
+    + `<text x="950" y="588" text-anchor="middle" font-size="11" fill="#2b2620">1000 公里（示意）</text>`
+    + `<rect x="770" y="592" width="90" height="8" fill="#2b2620"/><rect x="860" y="592" width="90" height="8" fill="#ffffff" stroke="#2b2620"/></g>`;
+  s += `<text x="16" y="614" font-size="11" fill="#5e554a">示意地图：国家位置与大小均为示意，非真实比例；城市间距离不代表真实里程。</text>`;
+  s += `</svg>`;
+  $("#mapHost").innerHTML = s;
+  /* ---- 以下两段与底本逐字相同：所在国城市列表 + 旅行文字 ---- */
+  const cityLines = cur.cities.map(c2 => {
+    const crowd = c2.pop >= 500 ? "人山人海，上下班挤地铁，学校多、机会多" : c2.pop >= 100 ? "热闹的城市" : c2.pop >= 20 ? "安静的小城，人少" : c2.pop >= 2 ? "安静的镇子，街上没几个人" : "小村子，几千人，互相都认识";
+    return `<div>${c2.name === p.city ? "📍 " : ""}<b>${c2.name}</b>（${c2.size}，${fmtPopWan(c2.pop)}）${c2.airport ? " ✈️机场" : ""}${c2.metro ? " 🚇地铁" : ""}${c2.train ? " 🚆火车站" : ""} — ${crowd}</div>`;
   }).join("");
-  $("#mapHost").innerHTML=`<svg id="worldmap" viewBox="0 0 800 280"><text x="8" y="18" font-size="12" fill="#8a8172">世界总人口 80亿 · 12个国家 · 仅列主要城市</text>${blocks}</svg>`;
-  const cur=countryById(p.country), ci=cityOf(p);
-  const cityLines=cur.cities.map(c2=>{
-    const crowd=c2.pop>=500?"人山人海，上下班挤地铁，学校多、机会多":c2.pop>=100?"热闹的城市":c2.pop>=20?"安静的小城，人少":c2.pop>=2?"安静的镇子，街上没几个人":"小村子，几千人，互相都认识";
-    return `<div>${c2.name===p.city?"📍 ":""}<b>${c2.name}</b>（${c2.size}，${fmtPopWan(c2.pop)}）${c2.airport?" ✈️机场":""}${c2.metro?" 🚇地铁":""}${c2.train?" 🚆火车站":""} — ${crowd}</div>`;
-  }).join("");
-  $("#mapList").innerHTML=`<div><b>${cur.name}</b>：人口 ${cur.pop}亿 · ${cur.climate} · ${cur.culture}</div>${cityLines}`;
-  const tb=$("#travelBox");
-  if(p.travel){tb.textContent=`🚗 他在路上：去${p.travel.to}（${p.travel.reason}），还要 ${p.travel.daysLeft} 天。`;}
-  else if(ci){tb.innerHTML=`他现在在 <b>${cur.name} · ${p.city}</b>（${ci.size}，人口${fmtPopWan(ci.pop)}）。${ci.pop>=500?"这里住着几百万人，街上永远人来人往。":ci.pop>=20?"这里安静，人不多。":"这里只有几千人，抬头不见低头见。"}想去别的城市要花时间、花钱，钱不够就去不了。`;}
+  $("#mapList").innerHTML = `<div><b>${cur.name}</b>：人口 ${cur.pop}亿 · ${cur.climate} · ${cur.culture}</div>${cityLines}`;
+  const tb = $("#travelBox");
+  if (p.travel && p.travel.stay) { tb.textContent = `🌴 他在${p.city}玩几天（旅行），还住 ${p.travel.stayLeft} 天再回家。`; }
+  else if (p.travel) { tb.textContent = `🚗 他在路上：去${p.travel.to}（${p.travel.reason}），还要 ${p.travel.daysLeft} 天。`; }
+  else if (ci) { tb.innerHTML = `他现在在 <b>${cur.name} · ${p.city}</b>（${ci.size}，人口${fmtPopWan(ci.pop)}）。${ci.pop >= 500 ? "这里住着几百万人，街上永远人来人往。" : ci.pop >= 20 ? "这里安静，人不多。" : "这里只有几千人，抬头不见低头见。"}想去别的城市要花时间、花钱，钱不够就去不了。`; }
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { MAP_GEO, mapPointInPoly, mapPolysOverlap, mapValidate, mapCityXY, mapFindCity };
 }
 function relLabel(p,q){
   if(p.parents&&p.parents.includes(q.id))return "父母";
@@ -3428,8 +4905,8 @@ function renderPanels(){
   // 关系
   const rels=Object.values(S.people).filter(q=>q.alive&&q.id!==p.id&&(p.rels[q.id]||q.role||p.parents?.includes(q.id)||p.spouse===q.id||p.children.includes(q.id)||p.siblings?.includes(q.id))).slice(0,30);
   $("#panel-rel").innerHTML=rels.length?rels.map(q=>{
-    const r=p.rels[q.id]; const v=r?Math.round(r.v):50;
-    return `<div class="npc"><div class="rel"><b>${q.name}</b> <span>· ${relLabel(p,q)} · ${ageStr(q)} · ${q.job||"无业"}${q.quirk?" · "+q.quirk:""}${q.routine?" · "+q.routine:""}</span><br><span>${q.backstory||""}${r&&r.status&&r.status!=="正常"?" · "+r.status:""}</span></div><div class="relbar"><i style="width:${v}%"></i></div></div>`;
+    const r=p.rels[q.id];
+    return `<div class="npc"><div class="rel"><b>${q.name}</b> <span>· ${relLabel(p,q)} · ${ageStr(q)} · ${q.job||"无业"}${q.quirk?" · "+q.quirk:""}${q.routine?" · "+q.routine:""}</span><br><span>${q.backstory||""}${r&&r.status&&r.status!=="正常"?" · "+r.status:""}</span></div></div>`;
   }).join(""):"<div class='note'>还没认识什么人。</div>";
   // 家族树
   const gens={};
@@ -3455,20 +4932,85 @@ const INTERV_BY_AGE=[
   {min:18,max:200,items:[["money","💰 塞点零花钱"],["talk","💬 陪他聊聊"],["food","🍗 加个鸡腿"]]},
 ];
 let lastIntervBand=-1;
-function renderInterv(){
-  const p=focus(); if(!p)return;
+/* ============================================================================
+ * J1：干预不再是按钮排 —— 入口藏在世界里，效果函数只有一份 doInterv(k)。
+ * ----------------------------------------------------------------------------
+ * 真实世界里没有“喂奶按钮”：妈妈喂奶，是因为孩子饿了；奶奶塞钱，是因为
+ * 孩子身上没钱了。观察者能做的只是“搭把手”——在世界顺理成章的时刻，
+ * 让那件本来就可能发生的事发生。每天每件最多一次（原冷却规则不变）。
+ * 两个入口：
+ *   1. 散文“接下来可能”里的可点词句（ivProseHTML）：只在需要真实存在时出现，
+ *      用完当天消失，不是常驻按钮。
+ *   2. 点画面人物（wireCamera 的点按分支，J1-6）：按他此刻最需要的事办一件，
+ *      不是“点中了谁的手”——人物没有单独热区，点的永远是“最需要的事”。
+ * 效果代码与原按钮 handler 逐行一致（见 doInterv），包括每天一次的冷却
+ * 与 renderAll()；旧 handler 由 J1-5 整体替换为路由到 doInterv，不留两份实现。
+ * ========================================================================== */
+function ivBandKeys(p){
+  // 当前年龄段能发生的干预（与原 INTERV_BY_AGE 同一张表，不另起一套）。
   const age=ageYears(p);
-  let band=INTERV_BY_AGE.findIndex(s=>age>=s.min&&age<=s.max);
-  if(band<0)band=INTERV_BY_AGE.length-1; // 兜底：任何年龄都有按钮
-  if(band===lastIntervBand)return; lastIntervBand=band;
-  const iv=$("#intervBox");
+  const band=INTERV_BY_AGE.find(s=>age>=s.min&&age<=s.max)||INTERV_BY_AGE[INTERV_BY_AGE.length-1];
+  return band.items.map(it=>it[0]);
+}
+function doInterv(k){
+  // 唯一的干预效果入口：原 #intervBox 按钮 handler 的效果代码，原样搬入。
+  const p=focus(); if(!p)return;
+  const day=dayCount();
+  if(ivCooldown[k]===day)return; // 每天每件最多一次
+  ivCooldown[k]=day;
+  if(k==="food"){p.attrs.hunger=clamp(p.attrs.hunger+30,0,100);p.attrs.mood=clamp(p.attrs.mood+5,0,100);logEvt("🍗 妈妈多做了个鸡腿，他吃得特别香。");}
+  if(k==="study"){p.attrs.learning=clamp(p.attrs.learning+2,0,100);p.skills.study=clamp(p.skills.study+1,0,100);logEvt("📖 妈妈陪他读了会儿书，讲了两道题。");}
+  if(k==="sport"){p.attrs.fitness=clamp(p.attrs.fitness+2,0,100);p.attrs.energy=clamp(p.attrs.energy-5,0,100);p.attrs.mood=clamp(p.attrs.mood+4,0,100);logEvt("⚽ 爸爸叫他去楼下打球，跑了一身汗。");}
+  if(k==="money"){moneyAdd(p,200,"奶奶偷偷塞了200块零花钱（别告诉爸妈）。");p.attrs.mood=clamp(p.attrs.mood+3,0,100);logEvt("💰 奶奶偷偷塞给他200块零花钱，让他别告诉爸妈。");}
+  if(k==="feed"){p.attrs.hunger=clamp(p.attrs.hunger+35,0,100);p.attrs.mood=clamp(p.attrs.mood+5,0,100);if(p.babyCare)p.babyCare.lastFeedMin=S.minutes;logEvt("🍼 妈妈给他喂了奶，喂完拍了拍嗝。");}
+  if(k==="diaper"){p.attrs.mood=clamp(p.attrs.mood+3,0,100);if(p.babyCare)p.babyCare.lastDiaperMin=S.minutes;logEvt("🧷 换了尿布，屁屁干干净净。");}
+  if(k==="soothe"){p.attrs.mood=clamp(p.attrs.mood+8,0,100);if(p.babyCare)p.babyCare.crying=false;logEvt("🤱 抱起来哄了哄，他不哭了。");}
+  if(k==="talk"){p.attrs.mood=clamp(p.attrs.mood+5,0,100);logEvt("💬 陪他聊了会儿天，他说了不少心里话。");}
+  renderAll();
+}
+function ivProseHTML(p){
+  // “接下来可能”后面的一句可点散文：只在需要真实存在、且今天还没做过时出现。
+  // 婴儿喂奶是常态（新生儿 2–3 小时一轮），不设饥饿门槛；用过当天即消失。
+  if(!p)return "";
+  const A=p.attrs, age=ageYears(p), day=dayCount();
+  const keys=ivBandKeys(p);
+  const avail=k=>keys.includes(k)&&ivCooldown[k]!==day;
+  const out=[];
+  const link=(k,txt)=>`<a data-iv-prose="${k}">${txt}</a>`;
+  if(avail("feed"))out.push(link("feed","妈妈给他喂喂奶"));
+  else if(avail("food")&&A.hunger<70)out.push(link("food","吃点好的补补"));
+  if(avail("diaper")&&p.babyCare&&(S.minutes-p.babyCare.lastDiaperMin)>180)out.push(link("diaper","换块干净的尿布"));
+  if(avail("soothe")&&(A.mood<60||(p.babyCare&&p.babyCare.crying)))out.push(link("soothe","抱起来哄一哄"));
+  if(avail("study")&&age>=6&&age<23&&A.learning<55)out.push(link("study","陪他读会儿书"));
+  if(avail("sport")&&A.mood<55&&A.energy>35)out.push(link("sport","出去跑跑，出出汗"));
+  if(avail("talk")&&A.mood<55)out.push(link("talk","陪他说说话"));
+  if(avail("money")&&p.money<100)out.push(link("money","奶奶偷偷塞点零花钱"));
+  if(!out.length)return "";
+  return "——"+out.slice(0,2).join("，");
+}
+function pickStageInterv(p){
+  // 点画面人物：按他此刻最需要的事挑一件。没有需要就不做（不硬凑）。
+  // 零花钱没有“点一下就给”的道理——奶奶塞钱只发生在他身上没钱时，
+  // 且只走散文入口；点画面永远不会凭空变出钱来。
+  if(!p)return null;
+  const A=p.attrs, age=ageYears(p), day=dayCount();
+  const keys=ivBandKeys(p);
+  const avail=k=>keys.includes(k)&&ivCooldown[k]!==day;
+  if(avail("feed")&&A.hunger<60)return "feed";
+  if(avail("food")&&A.hunger<60)return "food";
+  if(avail("diaper")&&p.babyCare&&(S.minutes-p.babyCare.lastDiaperMin)>180)return "diaper";
+  if(avail("soothe")&&(A.mood<60||(p.babyCare&&p.babyCare.crying)))return "soothe";
+  if(avail("study")&&age>=6&&age<23&&A.learning<55)return "study";
+  if(avail("sport")&&A.mood<55&&A.energy>35)return "sport";
+  if(avail("talk")&&A.mood<55)return "talk";
+  return null;
+}
+function renderInterv(){
+  // J1：干预不再画成按钮排。入口藏在世界里：散文“接下来可能”里的可点词句
+  // （ivProseHTML）和点画面人物（wireCamera 的点按分支，J1-6）。
+  // 这里只负责清掉旧按钮；#intervBox 本身留着（接线还在，不用改 HTML）。
+  const iv=$("#intervBox"); if(!iv)return;
   iv.querySelectorAll("button[data-iv]").forEach(b=>b.remove());
-  const set=INTERV_BY_AGE[band].items;
-  const ff=iv.querySelector("button:not([data-iv])");
-  for(const [k,label] of set){
-    const b=document.createElement("button"); b.dataset.iv=k; b.textContent=label;
-    iv.insertBefore(b, ff||null);
-  }
 }
 function renderAll(){if(!S)return;renderClock();renderScene();renderStatus();renderNowNext();renderInterv();renderMap();renderPanels();}
 /* ============ 主循环 ============ */
@@ -3476,6 +5018,8 @@ let lastTs=Date.now();
 function hourlyStep(h){
   const p=focus(); if(!p)return;
   const act=tickActivity(p,h);
+  // F1：坐车时人在车上跟着旅程走，每小时推进一点（夜里打盹时车也在开）
+  if(p.travel)S.px=travelPx(p);
   if(typeof maybeBusAnnounce==="function")maybeBusAnnounce(p);
   const A=p.attrs;
   if(act.kind==="sleep"){A.energy=clamp(A.energy+12,0,100);A.hunger=clamp(A.hunger-1,0,100);A.health=clamp(A.health+1,0,100);} // 睡觉养身体：睡一觉恢复一点
@@ -3497,6 +5041,7 @@ function tick(){
   const now=Date.now(); const dt=Math.min(5,(now-lastTs)/1000); lastTs=now;
   const add=S.speed>0&&!S.fastForwarding?S.speed*dt/60:0;
   // C1+C2：人物在世界里走动（按游戏时间走：穿过一个房间大约2游戏分钟，不是瞬移）
+  if(!Number.isFinite(S.px))S.px=S.pxTarget; // R3：px 异常（NaN）时贴回目标点，不粘住
   if(S.walking && Math.abs(S.px-S.pxTarget)>4){
     const mv=Math.max(7,250*add);
     S.px+=clamp(S.pxTarget-S.px,-mv,mv); S.walkPhase+=0.3+add*0.05;
@@ -3542,24 +5087,18 @@ function wire(){
       $("#panel-"+b.dataset.tab).classList.add("on");
     };
   });
-  // B8：干预按年龄动态生成（婴儿是喂奶/换尿布/哄，长大了才有零花钱、运动）
+  // J1：干预不再是按钮排——效果代码只有一份 doInterv(k)（见 J1-1 的插入），
+  // 与旧 handler 逐行一致（含每天一次的冷却与 renderAll），不留两份实现。
   const iv0=$("#intervBox");
   iv0.addEventListener("click",e=>{
     const b=e.target.closest("button[data-iv]"); if(!b)return;
-    const p=focus(); if(!p)return;
-    const day=dayCount();
-    if(ivCooldown[b.dataset.iv]===day)return;
-    ivCooldown[b.dataset.iv]=day;
-    const k=b.dataset.iv;
-    if(k==="food"){p.attrs.hunger=clamp(p.attrs.hunger+30,0,100);p.attrs.mood=clamp(p.attrs.mood+5,0,100);logEvt("🍗 妈妈多做了个鸡腿，他吃得特别香。");}
-    if(k==="study"){p.attrs.learning=clamp(p.attrs.learning+2,0,100);p.skills.study=clamp(p.skills.study+1,0,100);logEvt("📖 妈妈陪他读了会儿书，讲了两道题。");}
-    if(k==="sport"){p.attrs.fitness=clamp(p.attrs.fitness+2,0,100);p.attrs.energy=clamp(p.attrs.energy-5,0,100);p.attrs.mood=clamp(p.attrs.mood+4,0,100);logEvt("⚽ 爸爸叫他去楼下打球，跑了一身汗。");}
-    if(k==="money"){moneyAdd(p,200,"奶奶偷偷塞了200块零花钱（别告诉爸妈）。");p.attrs.mood=clamp(p.attrs.mood+3,0,100);logEvt("💰 奶奶偷偷塞给他200块零花钱，让他别告诉爸妈。");}
-    if(k==="feed"){p.attrs.hunger=clamp(p.attrs.hunger+35,0,100);p.attrs.mood=clamp(p.attrs.mood+5,0,100);if(p.babyCare)p.babyCare.lastFeedMin=S.minutes;logEvt("🍼 妈妈给他喂了奶，喂完拍了拍嗝。");}
-    if(k==="diaper"){p.attrs.mood=clamp(p.attrs.mood+3,0,100);if(p.babyCare)p.babyCare.lastDiaperMin=S.minutes;logEvt("🧷 换了尿布，屁屁干干净净。");}
-    if(k==="soothe"){p.attrs.mood=clamp(p.attrs.mood+8,0,100);if(p.babyCare)p.babyCare.crying=false;logEvt("🤱 抱起来哄了哄，他不哭了。");}
-    if(k==="talk"){p.attrs.mood=clamp(p.attrs.mood+5,0,100);logEvt("💬 陪他聊了会儿天，他说了不少心里话。");}
-    renderAll();
+    doInterv(b.dataset.iv); // 兜底：现在没有按钮，这行永远不触发
+  });
+  // 散文里的可点词句（data-iv-prose）走同一条 doInterv。
+  document.addEventListener("click",e=>{
+    const a=e.target.closest("[data-iv-prose]"); if(!a)return;
+    e.preventDefault();
+    doInterv(a.dataset.ivProse);
   });
   $("#btnSave").onclick=()=>{save();$("#saveNote").textContent="已保存："+worldDate().ds+" "+worldDate().hm;};
   $("#btnReset").onclick=()=>{
@@ -3581,6 +5120,7 @@ function init(){
   lastDay=dayCount(); lastMonth=worldDate().mo;
   wire();
   setInterval(tick,1000);
+  if(typeof ambInit==="function")ambInit(); // V3 D1+G1：生命感模块启动（life.INTEGRATION.md P4）
   renderAll();
 }
 init();
